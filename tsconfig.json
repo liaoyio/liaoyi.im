@@ -21,7 +21,7 @@
       "@library/*": [
         "./src/components/library/*"
       ],
-      "@fumadocs": [
+      "@fumadocs/*": [
         "./src/fumadocs/*"
       ],
       "@shadcn/*": [
