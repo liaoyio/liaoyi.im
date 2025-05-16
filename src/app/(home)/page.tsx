@@ -1,5 +1,8 @@
+import { RecentPosts } from '@/fumadocs/blog/blog-list'
 import { QuarteredGridBackground } from '@/fumadocs/components/background'
 import Hero from '@/fumadocs/components/hero'
+import { postsSource } from '@/lib/source'
+import { blogConfig } from '@/post-config'
 
 export default function HomePage() {
   return (
@@ -11,6 +14,12 @@ export default function HomePage() {
             <Hero />
           </div>
         </div>
+        <RecentPosts
+          blogConfig={blogConfig}
+          posts={postsSource.getPages()}
+          heading="Recent Posts"
+          description="The recently published"
+        />
       </div>
     </div>
   )
