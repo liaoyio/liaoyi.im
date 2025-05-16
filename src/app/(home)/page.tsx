@@ -1,21 +1,17 @@
-import Link from 'next/link'
+import { QuarteredGridBackground } from '@/fumadocs/components/background'
 
 export default function HomePage() {
   return (
-    <main className="flex flex-1 flex-col justify-center text-center">
-      <h1 className="mb-4 text-2xl font-bold">Hello World</h1>
-      <p className="text-fd-muted-foreground">
-        You can open
-        {' '}
-        <Link
-          href="/docs"
-          className="text-fd-foreground font-semibold underline"
-        >
-          /docs
-        </Link>
-        {' '}
-        and see the documentation.
-      </p>
-    </main>
+    <div className="flex flex-1 flex-col justify-center text-center">
+      <div className="relative flex w-full flex-col items-center overflow-x-hidden">
+        <QuarteredGridBackground maxWidthClass="container" />
+
+        <div className="relative flex items-center justify-center w-full mx-auto container">
+          <div className="space-y-8">
+
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }

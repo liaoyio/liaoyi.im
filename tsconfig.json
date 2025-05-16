@@ -17,6 +17,18 @@
       ],
       "@/*": [
         "./src/*"
+      ],
+      "@library/*": [
+        "./src/components/library/*"
+      ],
+      "@fumadocs": [
+        "./src/fumadocs/*"
+      ],
+      "@shadcn/*": [
+        "./src/components/ui/*"
+      ],
+      "~/*": [
+        "./*"
       ]
     },
     "resolveJsonModule": true,
