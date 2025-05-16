@@ -11,3 +11,44 @@ export function getSortedByDatePosts(posts: BlogPost[], includeDrafts: boolean =
     (a, b) => b.data.date.getTime() - a.data.date.getTime(),
   )
 }
+
+/**
+ * Returns all posts for a specific series
+ */
+export function getPostsBySeries(seriesName: string, posts: BlogPost[]) {
+  return posts
+    .filter(post => post.data.series === seriesName)
+    .sort((a, b) => {
+      // Sort by seriesPart if available, otherwise by date
+      if (a.data.seriesPart && b.data.seriesPart) {
+        return a.data.seriesPart - b.data.seriesPart
+      }
+      return a.data.date.getTime() - b.data.date.getTime()
+    })
+}
+
+/**
+ * Returns comprehensive information about a series
+ */
+export function getSeriesInfo(seriesName: string, posts: BlogPost[]) {
+  const seriesPosts = getPostsBySeries(seriesName, posts)
+  if (seriesPosts.length === 0)
+    return null
+
+  // Use the first post's title to extract series name if possible
+  const firstPost = seriesPosts[0]
+  if (!firstPost)
+    return null
+
+  const title = firstPost.data.title || ''
+  const seriesTitle = title.includes('Part')
+    ? title.split('Part')[0].trim()
+    : seriesName.charAt(0).toUpperCase() + seriesName.slice(1)
+
+  return {
+    name: seriesName,
+    title: seriesTitle,
+    posts: seriesPosts,
+    totalParts: seriesPosts.length,
+  }
+}

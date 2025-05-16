@@ -1,10 +1,11 @@
 import type { loader } from 'fumadocs-core/source'
 import type { BlogConfig } from '@/fumadocs/types'
 
-import { BlogList } from '@/fumadocs/blog/blog-list'
-import { blogConfig } from '@/post-config'
+import { blogConfig, getSeriesBySlug } from '@/post-config'
+import { BlogList } from './blog-list'
+import { SeriesList } from './series/list'
 import { getSortedByDatePosts } from './utils'
-import { isBlogRootPage } from './utils/page-type'
+import { getSeriesSlug, isBlogRootPage, isSeriesPage } from './utils/page-type'
 
 interface BlogWrapperProps {
   params: { slug?: string[] }
@@ -23,10 +24,23 @@ export default function BlogWrapper({
   includeDrafts = process.env.NODE_ENV !== 'production',
 }: BlogWrapperProps) {
   const sortedPosts = getSortedByDatePosts(posts, includeDrafts)
+
   // Handle blog root page
   if (isBlogRootPage(params)) {
     return (
       <BlogList page={1} blogConfig={blogConfig} posts={sortedPosts} />
+    )
+  }
+
+  // Handle series page
+  if (isSeriesPage(params)) {
+    const seriesSlug = getSeriesSlug(params)!
+    return (
+      <SeriesList
+        seriesSlug={seriesSlug}
+        posts={sortedPosts}
+        getSeriesBySlug={getSeriesBySlug}
+      />
     )
   }
 }
