@@ -1,23 +1,17 @@
-import {
-  defineConfig,
-  defineDocs,
-  frontmatterSchema,
-  metaSchema,
-} from 'fumadocs-mdx/config'
+import { mdxOptions } from '@fumadocs/mdx/mdx-options'
+import { postsSchema } from '@fumadocs/schema'
+import { defineCollections, defineConfig, frontmatterSchema } from 'fumadocs-mdx/config'
 
-// You can customise Zod schemas for frontmatter and `meta.json` here
-// see https://fumadocs.vercel.app/docs/mdx/collections#define-docs
-export const docs = defineDocs({
-  docs: {
-    schema: frontmatterSchema,
-  },
-  meta: {
-    schema: metaSchema,
-  },
+export const posts = defineCollections({
+  type: 'doc',
+  dir: 'content/posts',
+  schema: frontmatterSchema.extend(postsSchema),
 })
 
 export default defineConfig({
+  lastModifiedTime: 'git',
   mdxOptions: {
-    // MDX options
+    providerImportSource: '@/mdx-components',
+    ...mdxOptions,
   },
 })
