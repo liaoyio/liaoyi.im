@@ -28,7 +28,7 @@ export function RelatedSeriesPosts({
 
   // 🌰: /posts/series/x
   const { title, posts: seriesPosts, totalParts } = seriesInfo
-  const seriesHref = `/${blogConfig?.blogBase ?? 'blog'}/series/${seriesName}`
+  const seriesHref = `${blogConfig?.blogBase ?? 'blog'}/series/${seriesName}`
   return (
     <div className="my-6 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
       <div className="mb-2 font-medium text-gray-900 dark:text-white">
@@ -79,7 +79,11 @@ export function RelatedSeriesPosts({
 }
 
 /** 当前系列相关文章 Popover  */
-export function RelatedSeriesPostsPopover({ page, posts }: { page: any, posts: BlogPost[] }) {
+export function RelatedSeriesPostsPopover({
+  page,
+  posts,
+  blogConfig,
+}: { page: any, posts: BlogPost[], blogConfig?: BlogConfig }) {
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -104,6 +108,7 @@ export function RelatedSeriesPostsPopover({ page, posts }: { page: any, posts: B
           seriesName={page.data.series}
           currentPart={page.data.seriesPart}
           posts={posts}
+          blogConfig={blogConfig}
         />
       </PopoverContent>
     </Popover>

@@ -65,3 +65,44 @@ export function BlogList({
     />
   )
 }
+
+export function CategoryBlogList({
+  category,
+  page = 1,
+  disablePagination = false,
+  blogConfig,
+  posts,
+  getCategoryBySlug,
+}: {
+  category: string
+  page?: number
+  disablePagination?: boolean
+  blogConfig?: BlogConfig
+  posts: BlogPost[]
+  getCategoryBySlug: (slug: string) => any
+}) {
+  const pageSize = blogConfig?.pageSize || 5
+  const categoryInfo = getCategoryBySlug(category)
+  const filteredPosts = posts.filter(
+    post => post.slugs && post.slugs[0] === category,
+  )
+  const displayPosts = filteredPosts.slice(
+    (page - 1) * pageSize,
+    page * pageSize,
+  )
+  const totalPages = Math.ceil(filteredPosts.length / pageSize)
+  const basePath = `${blogConfig?.blogBase ?? 'blog'}/${category}`
+
+  return (
+    <PostList
+      posts={displayPosts}
+      currentPage={page}
+      totalPages={totalPages}
+      heading={categoryInfo.label}
+      description={categoryInfo.description}
+      basePath={basePath}
+      disablePagination={disablePagination}
+      blogConfig={blogConfig}
+    />
+  )
+}

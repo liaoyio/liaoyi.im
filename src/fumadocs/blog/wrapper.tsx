@@ -1,19 +1,19 @@
-import type { loader } from 'fumadocs-core/source'
+import type { MDXComponents } from 'mdx/types'
 import type { BlogConfig } from '@/fumadocs/types'
-
-import { blogConfig, getSeriesBySlug } from '@/post-config'
-import { BlogList } from './blog-list'
+import { notFound } from 'next/navigation'
+import { BlogList, CategoryBlogList } from './blog-list'
 import { SeriesList } from './series/list'
+import { SinglePost } from './single-post'
 import { getSortedByDatePosts } from './utils'
-import { getSeriesSlug, isBlogRootPage, isSeriesPage } from './utils/page-type'
+import { getCategorySlug, getPageNumber, getSeriesSlug, isBlogRootPage, isCategoryPage, isPaginatedBlogPage, isPaginatedCategoryPage, isSeriesPage, isSinglePostPage } from './utils/page-type'
 
 interface BlogWrapperProps {
   params: { slug?: string[] }
-  blogSource: ReturnType<typeof loader>
+  blogSource: any
   posts: any[]
   getCategoryBySlug: (slug: string) => any
   getSeriesBySlug: (slug: string) => any
-  mdxComponents: any
+  mdxComponents: MDXComponents
   includeDrafts?: boolean
   blogConfig?: BlogConfig
 }
@@ -22,6 +22,12 @@ export default function BlogWrapper({
   params,
   posts,
   includeDrafts = process.env.NODE_ENV !== 'production',
+  blogSource,
+  getCategoryBySlug,
+  getSeriesBySlug,
+  blogConfig,
+  mdxComponents,
+
 }: BlogWrapperProps) {
   const sortedPosts = getSortedByDatePosts(posts, includeDrafts)
 
@@ -40,6 +46,75 @@ export default function BlogWrapper({
         seriesSlug={seriesSlug}
         posts={sortedPosts}
         getSeriesBySlug={getSeriesBySlug}
+      />
+    )
+  }
+
+  // Handle category page
+  if (isCategoryPage(params)) {
+    const category = getCategorySlug(params)
+    return (
+      <CategoryBlogList
+        category={category}
+        blogConfig={blogConfig}
+        posts={sortedPosts}
+        getCategoryBySlug={getCategoryBySlug}
+      />
+    )
+  }
+
+  // Handle paginated blog page
+  if (isPaginatedBlogPage(params)) {
+    return (
+      <BlogList
+        page={getPageNumber(params)}
+        blogConfig={blogConfig}
+        posts={sortedPosts}
+      />
+    )
+  }
+
+  // Handle paginated category page
+  if (isPaginatedCategoryPage(params)) {
+    const category = params.slug?.[0]
+
+    if (!category) {
+      return notFound()
+    }
+
+    return (
+      <CategoryBlogList
+        category={category}
+        page={getPageNumber(params)}
+        blogConfig={blogConfig}
+        posts={sortedPosts}
+        getCategoryBySlug={getCategoryBySlug}
+      />
+    )
+  }
+
+  // Handle blog post page
+  if (isSinglePostPage(params)) {
+    const page = blogSource.getPage(params.slug)
+    const category = params.slug?.[0] || undefined
+
+    if (!page)
+      notFound()
+
+    const lastModified = page?.data.date
+    const lastUpdate = lastModified ? new Date(lastModified) : undefined
+    const tags = page?.data.tags ?? []
+
+    return (
+      <SinglePost
+        page={page}
+        category={category}
+        lastUpdate={lastUpdate}
+        tags={tags}
+        blogConfig={blogConfig}
+        getCategoryBySlug={getCategoryBySlug}
+        mdxComponents={mdxComponents}
+        posts={sortedPosts}
       />
     )
   }
