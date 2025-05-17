@@ -1,0 +1,146 @@
+---
+title: GithubCodeBlock Component
+description: A codeblock component to display code from public GitHub repositories in Fuma Docs
+date: 2025-04-15
+author: liaoyi
+draft: true
+tags: [react, component]
+---
+
+The `GithubCodeBlock` component allows you to embed and display code from GitHub repositories directly in your Fuma Docs application. It supports line extraction, syntax highlighting, and line highlighting features.
+
+## Launch Post
+
+
+## Installation
+
+You need to have fumadocs setup ready and running
+
+### 1. Copy following code anywhere into your components
+
+_I am still working on a better way if there is one like using shadcn cli_
+
+
+### 2. Add to MDX Components
+
+```tsx title="mdx-components.tsx"
+import defaultMdxComponents from "fumadocs-ui/mdx";
+import type { MDXComponents } from "mdx/types";
+import GithubCodeBlock from "@/components/github-code-block";
+
+export function getMDXComponents(components?: MDXComponents): MDXComponents {
+  return {
+    ...defaultMdxComponents,
+    GithubCodeBlock: GithubCodeBlock,
+    ...components,
+  };
+}
+```
+
+### 3. Basic Usage
+
+```tsx title="usage"
+<GithubCodeBlock url="https://github.com/liaoyio/liaoyi.im/blob/main/tsconfig.json" />
+```
+
+<GithubCodeBlock
+  url="https://github.com/liaoyio/liaoyi.im/blob/main/tsconfig.json"
+  wrapper={{ title: "result" }}
+/>
+
+## Props
+
+The component accepts the following props:
+
+| Prop             | Type      | Default     | Description                                                  |
+| ---------------- | --------- | ----------- | ------------------------------------------------------------ |
+| `url`            | `string`  | (required)  | GitHub URL to the file you want to display                   |
+| `extractLines`   | `boolean` | `false`     | Whether to extract specific lines from the file              |
+| `highlightLines` | `string`  | `undefined` | Lines to highlight in the format `"{1,3-4}"`                 |
+| `wrapper`        | `object`  | `undefined` | CodeBlockProps to pass to the underlying CodeBlock component |
+
+## Examples
+
+### Display a Complete File
+
+```tsx title="usage"
+<GithubCodeBlock url="https://github.com/rjvim/react-component-library-starter/blob/main/lerna.json" />
+```
+
+<GithubCodeBlock
+  url="https://github.com/rjvim/react-component-library-starter/blob/main/lerna.json"
+  wrapper={{ title: "result" }}
+/>
+
+### Extract Specific Lines
+
+You can extract specific lines from a file by adding a line reference to the URL and setting `extractLines` to `true`:
+
+```tsx title="usage"
+<GithubCodeBlock
+  url="https://github.com/rjvim/react-component-library-starter/blob/main/lerna.json#L2-L4"
+  extractLines={true}
+/>
+```
+
+
+
+### Highlight Specific Lines
+
+You can highlight specific lines using the `highlightLines` prop:
+
+```tsx title="usage"
+<GithubCodeBlock
+  url="https://github.com/rjvim/react-component-library-starter/blob/main/lerna.json"
+  highlightLines="{2,4}"
+/>
+```
+
+
+
+### Extract and Highlight Lines
+
+You can extract specific lines and highlight them at the same time:
+
+```tsx title="usage"
+<GithubCodeBlock
+  url="https://github.com/rjvim/react-component-library-starter/blob/main/lerna.json#L2-L4"
+  extractLines={true}
+  highlightLines="{2}"
+/>
+```
+
+
+
+### Automatic Highlighting from URL
+
+The component will automatically use line references in the URL hash for highlighting if no `highlightLines` prop is provided:
+
+```tsx title="usage"
+<GithubCodeBlock url="https://github.com/rjvim/react-component-library-starter/blob/main/lerna.json#L2-L4" />
+```
+
+This will highlight lines 2-4 if `extractLines` is `false`:
+
+
+
+### Override URL Highlighting
+
+You can override the automatic URL-based highlighting by providing your own `highlightLines` prop:
+
+```tsx title="usage"
+<GithubCodeBlock
+  url="https://github.com/rjvim/react-component-library-starter/blob/main/lerna.json#L2-L4"
+  highlightLines="{3}"
+/>
+```
+
+
+
+## Highlight Format
+
+The `highlightLines` prop accepts a string in the format `"{lineNumber,lineRange}"` where:
+
+- Single lines are specified as numbers: `"{1,3,5}"`
+- Ranges are specified with a hyphen: `"{1-3,5-7}"`
+- You can combine both: `"{1,3-5,7,9-11}"`

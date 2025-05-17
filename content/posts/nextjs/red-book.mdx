@@ -1,0 +1,178 @@
+---
+title: Next.js 使用拦截路由实现小红书网页版查看帖子
+description: Next.js 15 引入了 Intercepting Routes 特性，这使得开发者能够创建更加丰富的用户界面和体验。
+date: 2024-12-02
+tags: ['Next.js']
+author: liaoyi
+series: Nextjs
+seriesPart: 1
+---
+
+在Next.js 15中引入了 [Intercepting Routes](https://nextjs.org/docs/app/building-your-application/routing/intercepting-routes) 特性，拦截路由允许你在当前路由拦截其他路由地址并在当前路由中展示内容，这使得开发者能够创建更加丰富的用户界面和体验。
+
+在小红书网页版中，用户可以浏览内容流，并在点击某项内容时查看详细内容，而不必离开当前页面。如下图所示：
+
+![](./images/xiaohongshu.gif)
+
+当点击某个贴子时,页面弹出了一层 Modal，Modal 中展示了文章的具体内容。如果你想要查看其他文章，点击右上角的关闭按钮，关掉 Modal 即可继续浏览。
+
+值得注意的是，此时路由地址也发生了变化，它变成了这偏文章的的具体地址。如果你喜欢这个帖子，直接复制当前的地址分享给朋友即可。
+
+而当你的朋友打开时，将不再以 Modal 的形式展现，而是直接展示这篇文章全屏页面。
+
+了解了拦截路由的效果，让我们再思考下使用拦截路由的意义是什么。
+
+简单的来说，就是希望用户继续停留在重要的页面上。比如上述例子中的图片流页面，开发者肯定是希望用户能够持续在图片流页面浏览，如果点击一张图片就跳转出去，会打断用户的浏览体验，如果点击只展示一个 Modal，分享操作又会变得麻烦一点。拦截路由正好可以实现这样一种平衡。又比如任务列表页面，点击其中一项任务，弹出 Modal 让你能够编辑此任务，同时又可以方便的分享任务内容。
+
+### 1. 拦截路由实现方式
+
+拦截路由可以使用 `(..)` 约定来定义，这与相对路径约定 `../` 类似：
+
+- `(.)` 表示匹配同一层级
+- `(..)` 表示匹配上一层级
+- `(..)(..)` 表示匹配上上层级
+- `(...)` 表示匹配`root`根目录
+
+但是要注意的是，这个匹配的是路由的层级而不是文件夹路径的层级，就比如路由组、平行路由这些不会影响 URL 的文件夹就不会被计算层级。
+
+例如，您可以通过创建一个 `(..)photo` 目录来截取 `feed` 节段中的 `photo` 节段。如下图：
+
+![](./images/intercepted-routes-files.png)
+
+`/feed/(..)photo` 对应的路由是 `/feed/photo`，要拦截的路由是 `/photo`，两者只差了一个层级，所以使用 `(..)`
+
+### 2. 项目结构
+
+我们写个 demo 来实现这个效果，目录结构如下：
+
+```shell
+app/
+  ├── @modal/
+  │   ├── (.)photos/[id]/
+  │   │   ├── modal.tsx
+  │   │   └── page.tsx
+  │   ├── default.tsx
+  │   └── photos/[id]/
+  │       └── page.tsx
+  ├── default.tsx
+  ├── layout.tsx
+  └── page.tsx
+```
+
+### 3. 模态窗口组件
+
+在 `@modal/(.)photos/[id]/modal.tsx` 中，我们创建一个 `Modal` 组件，用于显示模态窗口：
+
+```tsx
+// title @modal/(.)photos/[id]/modal.tsx
+'use client';
+
+import { type ElementRef, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { useRouter } from 'next/navigation';
+
+// title @modal/(.)photos/[id]/modal.tsx
+
+export function Modal({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const dialogRef = useRef<ElementRef<'dialog'>>(null);
+
+  useEffect(() => {
+    if (!dialogRef.current?.open) {
+      dialogRef.current?.showModal();
+    }
+  }, []);
+
+  function onDismiss() {
+    router.back();
+  }
+
+  return createPortal(
+    <div className="absolute bottom-0 left-0 right-0 top-0 z-[1000] flex items-center justify-center bg-black/70">
+      <dialog
+        ref={dialogRef}
+        className="relative flex h-auto max-h-[500px] w-10/12 max-w-[500px] items-center justify-center rounded-xl border-none bg-white p-5 text-5xl font-medium"
+        onClose={onDismiss}
+      >
+        {children}
+        <button
+          onClick={onDismiss}
+          className="flex-center absolute right-2.5 top-2.5 size-12 cursor-pointer rounded-2xl border-none bg-transparent text-2xl font-medium after:text-black after:content-['x'] hover:bg-[#eee]"
+        />
+      </dialog>
+    </div>,
+    document.getElementById('modal-root')!,
+  );
+}
+```
+
+### 4. Modal 页面
+
+在 `@modal/(.)photos/[id]/page.tsx` 中，我们创建一个页面，用于在模态窗口中显示照片详情：
+
+```tsx
+// title @modal/(.)photos/[id]/page.tsx
+import { Modal } from './modal';
+
+export default async function PhotoModal({ params }: { params: Promise<{ id: string }> }) {
+  const photoId = (await params).id;
+  return <Modal>{photoId}</Modal>;
+}
+```
+
+### 5. 详情页面
+
+在 `@modal/photos/[id]/page.tsx` 中，我们创建一个页面，用于直接通过 URL 访问照片详情：
+
+```tsx
+// title @modal/photos/[id]/page.tsx
+export const dynamicParams = false;
+
+export function generateStaticParams() {
+  const slugs = ['1', '2', '3', '4', '5', '6'];
+  return slugs.map((slug) => ({ id: slug }));
+}
+
+export default async function PhotoPage({ params }: { params: Promise<{ id: string }> }) {
+  const id = (await params).id;
+  return (
+    <div className="flex-center h-[200px] max-w-[80%] rounded-lg bg-[#eee] text-2xl font-medium decoration-0 md:max-w-[200px]">
+      {id}
+    </div>
+  );
+}
+```
+
+### 6. 首页
+
+在 `app/page.tsx` 中，我们创建一个首页，展示照片列表，并允许用户点击照片查看详情：
+
+```tsx
+// title app/page.tsx
+import Link from 'next/link';
+
+export default function Page() {
+  const photos = Array.from({ length: 6 }, (_, i) => i + 1);
+  return (
+    <section className="grid grid-cols-1 items-center justify-center gap-4 p-4 md:grid-cols-[repeat(3,_200px)]">
+      {photos.map((id) => (
+        <Link
+          className="flex-center h-[200px] max-w-[80%] rounded-lg bg-[#eee] text-2xl font-medium decoration-0 md:max-w-[200px]"
+          key={id}
+          href={`/photos/${id}`}
+          passHref
+        >
+          {id}
+        </Link>
+      ))}
+    </section>
+  );
+}
+```
+
+### 7. 补充
+
+Next.js 官方文档提供了关于 [Intercepting Routes](https://link.juejin.cn?target=https%3A%2F%2Fnextjs.org%2Fdocs%2Fapp%2Fbuilding-your-application%2Frouting%2Fintercepting-routes 'https://nextjs.org/docs/app/building-your-application/routing/intercepting-routes') 的详细信息，这允许我们在当前布局中加载应用程序其他部分的路由。这种路由模式在想要在不切换用户上下文的情况下显示路由内容时非常有用。例如，点击内容流中的照片时，可以在模态窗口中显示照片，而不需要跳转到新页面。
+
+
+注意⚠️: Intercepting Routes 是 Next.js App Router 的高级动态路由功能，需要运行时的服务端逻辑，而不是纯静态 HTML。所以在使用静态导出时是无法编译的。

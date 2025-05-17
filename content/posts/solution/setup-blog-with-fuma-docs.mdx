@@ -1,0 +1,404 @@
+---
+title: 使用 Next.js 和 Fumadocs 搭建个人博客
+description: 在 Next.js 上使用 Fumadocs 配置个人博客指南
+date: 2025-04-23
+author: 'liaoyi'
+tags: [blog, template, fumadocs, nextjs, mdx]
+---
+
+你希望你的博客具备哪些功能？ 以下是我选择并实现的功能：
+
+## 功能清单
+
+- [x] 可发布到 GitHub Pages 的静态网站
+- [x] MDX 支持：做为一个前端开发，需要在文章中嵌入一些 React 示例组件
+- [x] 搜索功能
+- [x] 目录 (Clerk 风格)
+- [x] 文章页面
+- [x] 带分页的文章列表
+- [x] 分类功能
+- [x] 系列功能
+- [ ] 标签（开发中）
+- [x] 社交分享时的元数据: OpenGraph 和 Twitter Card
+- [x] 生成静态站点!
+
+## 搭建步骤
+
+FumaDocs 官方文档中已有一篇关于如何搭建博客的教程：[Setup a Blog](https://fumadocs.vercel.app/blog/make-a-blog)。我在此基础上实现了上面提到的功能。
+
+
+
+你有两种方式来继续：
+
+- 克隆我的项目仓库
+- 或者，按以下步骤将功能集成到你自己的 Next.js 项目中
+
+### Install and Configure Fumadocs
+
+<Steps>
+
+<Step>
+
+### 安装并配置 Fumadocs
+
+你需要一个已配置好的 Fumadocs 项目。如果你还没有，可以用以下命令快速创建：
+
+<Tabs groupId="package-manager" persist items={['npm', 'pnpm', 'yarn', 'bun']} label="Initialize Fumadocs">
+  ```bash tab="npm"
+  npm create fumadocs-app
+  ```
+
+  ```bash tab="pnpm"
+  pnpm create fumadocs-app
+  ```
+
+  ```bash tab="yarn"
+  yarn create fumadocs-app
+  ```
+
+  ```bash tab="bun"
+  bun create fumadocs-app
+  ```
+</Tabs>
+
+
+
+也可以选择[手动安装](https://fumadocs.vercel.app/docs/ui/manual-installation) Fumadocs。
+
+此时，你应该已有了基本配置文件：`source.config.ts` 和 `lib/source.ts`
+
+</Step>
+
+<Step>
+
+### 配置 ShadCN 组件
+
+如果你已经安装了 shadcn，可以跳过此步骤。
+
+
+```bash
+pnpm dlx shadcn@latest init
+```
+我们需要以下组件：
+
+- button
+- popover
+- badge
+- card
+
+一键安装：
+
+```bash
+pnpm dlx shadcn@latest add button popover badge card
+```
+我们还需要一个 **book** 图标组件，用于展示系列文章：
+```bash
+pnpm dlx shadcn@latest add "https://21st.dev/r/designali-in/book"
+```
+
+</Step>
+
+<Step>
+
+### 定义博客集合（Collection）
+
+我们使用 `zod` 来定义 frontmatter 的校验：
+
+```package-install
+zod
+```
+
+
+
+在 source.config.ts 中添加以下代码：
+
+```ts title="source.config.ts"
+import { defineCollections, defineConfig, frontmatterSchema } from 'fumadocs-mdx/config'
+
+export const posts = defineCollections({
+  type: 'doc',
+  dir: 'content/posts',
+  schema: frontmatterSchema,
+})
+```
+
+在 `lib/source.ts` 中添加：
+
+```ts title="lib/source.ts"
+import { loader } from 'fumadocs-core/source'
+import { createMDXSource } from 'fumadocs-mdx'
+import { posts } from '@/.source'
+
+export const postsSource = loader({
+  baseUrl: '/posts',
+  source: createMDXSource(posts),
+})
+```
+
+</Step>
+
+<Step>
+
+### 添加自定义的 fumadocs 组件
+
+由于功能较多，我们使用 giget 命令批量复制文件：
+
+**添加所有必要的组件**
+
+```bash
+npx giget gh:liaoyio/liaoyi.im/src/fumadocs ./src/fumadocs --force
+```
+
+**添加 /blog 路由页面**
+
+```bash
+npx giget gh:liaoyio/liaoyi.im/src/app/\(home\)/posts ./src/app/\(home\)/posts --force
+```
+
+**添加 /og  路由页面**
+
+```bash
+npx giget gh:liaoyio/liaoyi.im/src/app/og ./src/app/og  --force
+```
+
+
+**导入schema** 用于扩展文章集合默认的 frontmatter
+
+```ts title="source.config.ts"
+import { postsSchema } from '@fumadocs/schema' // [!code highlight]
+import { defineCollections, defineConfig, frontmatterSchema } from 'fumadocs-mdx/config'
+
+export const posts = defineCollections({
+  type: 'doc',
+  dir: 'content/posts',
+  schema: frontmatterSchema.extend(postsSchema),// [!code highlight]
+})
+```
+
+
+**在 `global.css` 中添加样式：**
+
+```css title="global.css"
+@import "../fumadocs/css/blog.css";
+```
+
+</Step>
+
+<Step>
+
+### 配置博客信息
+
+如果 src/fumadocs 是一个npm包，那么上述所有步骤都将由其处理。现在，我们需要配置博客。博客配置驱动以下内容：
+
+- Metadata (元数据)
+- Components (自定义组件)
+- Categories (分类)
+- Series (系列)
+- Others (分页设置等)
+
+_我将记录一份详细的指南，但到目前为止，以下内容应该能给出大部分想法_
+
+
+在根路径的仓库中添加以下文件，我们使用 `@/post-config` 导入
+
+```tsx title="post-config.ts"
+import type { Metadata } from 'next'
+import type { BlogConfig } from '@/fumadocs/types'
+import { Brain, Code, Cog, Lightbulb, LucideBook, Megaphone, Rocket, Users, Wrench } from 'lucide-react'
+import { Social } from '@/fumadocs/components/icons/social'
+
+export const blogConfig = {
+  blogTitle: 'Blog',
+  blogDescription: 'Articles and thoughts',
+  siteName: 'liaoyi.im',
+  defaultAuthorName: 'liaoyi',
+  xUsername: '@liaoyia',
+  // Pagination
+  paginationTitle: (page: number) => `Blog - Page ${page}`,
+  paginationDescription: (page: number) =>
+    `Articles and thoughts - Page ${page}`,
+  categoryPaginationTitle: (category: string, page: number) =>
+    `${category.charAt(0).toUpperCase() + category.slice(1)} - Page ${page}`,
+  categoryPaginationDescription: (category: string, page: number) =>
+    `Articles in the ${category} category - Page ${page}`,
+  // URLs
+  blogBase: '/posts',
+  blogOgImageBase: 'og',
+  pageSize: 5,
+}
+
+export function createBlogMetadata(
+  override: Metadata,
+  blogConfig: BlogConfig,
+): Metadata {
+  const { defaultAuthorName, siteName, xUsername } = blogConfig
+  const siteUrl = `https://${siteName}`
+
+  const author = {
+    name: defaultAuthorName,
+    url: siteUrl,
+  }
+
+  return {
+    ...override,
+    authors: [author],
+    creator: defaultAuthorName,
+    openGraph: {
+      title: override.title ?? undefined,
+      description: override.description ?? undefined,
+      url: siteUrl,
+      siteName,
+      ...override.openGraph,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      site: xUsername,
+      creator: xUsername,
+      title: override.title ?? undefined,
+      description: override.description ?? undefined,
+      ...override.twitter,
+    },
+    alternates: {
+      canonical: '/',
+      types: { 'application/rss+xml': '/api/rss.xml' },
+      ...override.alternates,
+    },
+    icons: {
+      icon: [
+        {
+          media: '(prefers-color-scheme: light)',
+          url: '/icon.svg.svg',
+          href: '/icon.svg',
+        },
+        {
+          media: '(prefers-color-scheme: dark)',
+          url: '/icon.svg.svg',
+          href: '/icon.svg',
+        },
+      ],
+    },
+  }
+}
+
+export function getCategoryBySlug(slug: string) {
+  const categories = {
+    'idea': {
+      label: 'Idea',
+      icon: Brain,
+      description:
+        'Exploratory thoughts and wild concepts for Teurons and beyond.',
+    }
+  }
+
+  return (
+    categories[slug as keyof typeof categories] || {
+      label: slug.toString().replace(/-/g, ' ').toLowerCase(),
+      icon: Social.github,
+    }
+  )
+}
+
+export function getSeriesBySlug(slug: string) {
+  const series = {
+    'x': {
+      label: 'Series X',
+      icon: LucideBook,
+      description:
+        'A comprehensive series on Zero Trust security architecture.',
+    },
+    // Add more series here as needed
+  }
+
+  return (
+    series[slug as keyof typeof series] || {
+      label: slug.charAt(0).toUpperCase() + slug.slice(1),
+      icon: LucideBook,
+      description: `Articles in the ${slug.charAt(0).toUpperCase() + slug.slice(1)} series.`,
+    }
+  )
+}
+```
+
+</Step>
+
+<Step>
+
+### 添加测试文章
+
+添加一个测试用 `.mdx` 文件，路径为 `content/posts/idea/zero-trust-security.mdx`
+
+需要注意的点："idea" 是博客的类别，"zero-trust-security" 将是文章的 URL。
+
+```mdx title="content/blog/idea/zero-trust-security.mdx"
+---
+title: Zero Trust Security
+description: Why modern security architectures assume breach and verify everything
+author: lina
+date: 2025-03-22
+tags: [security, zero trust, cybersecurity, enterprise]
+---
+
+# Zero Trust Security
+
+Traditional security models operated on the principle of "trust but verify" and focused on perimeter defense. Zero Trust flips this paradigm with a simple principle: never trust, always verify.
+
+## Core Principles
+
+Zero Trust is built on several foundational ideas:
+
+### Assume Breach
+
+Zero Trust architectures operate under the assumption that attackers are already present within the network.
+
+### Verify Explicitly
+
+Every access request must be fully authenticated, authorized, and encrypted:
+
+1. Strong identity verification for all users
+2. Device health validation
+3. Just-in-time and just-enough access
+4. Context-aware policies
+
+## Implementation Strategies
+
+Moving to Zero Trust requires systematic changes:
+
+### Identity as the Control Plane
+
+Modern security centers on identity rather than network location:
+
+### Micro-Segmentation
+
+Network security shifts from perimeter-based to fine-grained segmentation between workloads.
+```
+
+</Step>
+
+<Step>
+
+### 测试博客功能
+此时打开 `http://localhost:3000/posts` ，你将看到文章列表（目前只有一篇）。添加更多文章后，每页展示 5 篇，会自动分页。
+
+点击文章可进入详情页：你可以查看标签、分类、系列等信息。
+
+如果你想将文章归入某个系列，在 `.mdx` 文件中，可添加以下 `frontmatter` 字段：
+
+```mdx
+series: building-react-component-library
+seriesPart: 1
+```
+
+</Step>
+</Steps>
+
+## 后续计划
+
+本博客的开发是基于我个人的需求和正在构建的产品，以下是我接下来的计划：
+
+	•	添加订阅功能（但静态站点如何实现？）
+	•	标签功能
+	•	组件样式支持自定义覆盖
+	•	封装为可克隆模板
+	•	最大的问题在于，一旦你克隆模板并开始修改，后续就无法方便地更新。所以我考虑将其改为 monorepo 架构，以便以开源包的形式持续更新。
+
+你还想添加什么功能？欢迎在 Twitter 上联系我并关注我获取更新。
