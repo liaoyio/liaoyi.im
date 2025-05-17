@@ -5,6 +5,7 @@ import { DocsLayout } from 'fumadocs-ui/layouts/docs'
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/page'
 import { Calendar } from 'lucide-react'
 import { createElement } from 'react'
+import readingTime from 'reading-time'
 import { QuarteredGridBackground } from '@/fumadocs/components/background'
 import { cn } from '@/lib/cn'
 // Popover and Badge configuration come from configuration context
@@ -33,6 +34,9 @@ export function SinglePost({
   mdxComponents,
   posts = defaultPosts,
 }: SinglePostProps) {
+  const stats = readingTime(page.data.content)
+  const minutes = Math.ceil(stats.minutes)
+
   const MDX = page.data.body
   const categoryHref = `${blogConfig?.blogBase ?? 'blog'}/${category}`
   return (
@@ -79,6 +83,16 @@ export function SinglePost({
                 {tag}
               </span>
             ))}
+        </div>
+
+        <div>
+          <p className="text-muted-foreground text-xs mt-4">
+            🕒 阅读时间：
+            {minutes}
+            分钟（约
+            {stats.words}
+            字）
+          </p>
         </div>
       </div>
 

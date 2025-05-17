@@ -1,3 +1,5 @@
+import type { Metadata } from 'next'
+import type { BlogConfig } from '@/fumadocs/types'
 import { Brain, Code, Cog, Lightbulb, LucideBook, Megaphone, Rocket, Users, Wrench } from 'lucide-react'
 import { Social } from '@/fumadocs/components/icons/social'
 
@@ -17,8 +19,61 @@ export const blogConfig = {
     `Articles in the ${category} category - Page ${page}`,
   // URLs
   blogBase: '/posts',
-  blogOgImageBase: 'blog-og',
+  blogOgImageBase: 'og',
   pageSize: 5,
+}
+
+export function createBlogMetadata(
+  override: Metadata,
+  blogConfig: BlogConfig,
+): Metadata {
+  const { defaultAuthorName, siteName, xUsername } = blogConfig
+  const siteUrl = `https://${siteName}`
+
+  const author = {
+    name: defaultAuthorName,
+    url: siteUrl,
+  }
+
+  return {
+    ...override,
+    authors: [author],
+    creator: defaultAuthorName,
+    openGraph: {
+      title: override.title ?? undefined,
+      description: override.description ?? undefined,
+      url: siteUrl,
+      siteName,
+      ...override.openGraph,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      site: xUsername,
+      creator: xUsername,
+      title: override.title ?? undefined,
+      description: override.description ?? undefined,
+      ...override.twitter,
+    },
+    alternates: {
+      canonical: '/',
+      types: { 'application/rss+xml': '/api/rss.xml' },
+      ...override.alternates,
+    },
+    icons: {
+      icon: [
+        {
+          media: '(prefers-color-scheme: light)',
+          url: '/icon.svg.svg',
+          href: '/icon.svg',
+        },
+        {
+          media: '(prefers-color-scheme: dark)',
+          url: '/icon.svg.svg',
+          href: '/icon.svg',
+        },
+      ],
+    },
+  }
 }
 
 // Moved from lib/categories.ts

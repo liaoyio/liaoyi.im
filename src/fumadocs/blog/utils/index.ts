@@ -13,6 +13,21 @@ export function getSortedByDatePosts(posts: BlogPost[], includeDrafts: boolean =
 }
 
 /**
+ * Returns all unique series names from posts
+ */
+export function getSeriesNames(posts: BlogPost[]) {
+  const seriesSet = new Set<string>()
+
+  for (const post of posts) {
+    if (post.data.series) {
+      seriesSet.add(post.data.series)
+    }
+  }
+
+  return Array.from(seriesSet).sort()
+}
+
+/**
  * Returns all posts for a specific series
  */
 export function getPostsBySeries(seriesName: string, posts: BlogPost[]) {

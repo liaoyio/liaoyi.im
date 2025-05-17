@@ -1,17 +1,19 @@
-import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import { RootProvider } from 'fumadocs-ui/provider'
 import { geistMono, geistSans } from '@/fonts'
 import { cn } from '@/lib/cn'
+import { baseUrl, createMetadata } from '@/lib/metadata'
+import { description } from './layout.config'
 import '../css/style.css'
 
-export const metadata: Metadata = {
+export const metadata = createMetadata({
   title: {
     template: '%s | liaoyi.im',
     default: 'liaoyi.im',
   },
-  description: '',
-}
+  description: description ?? '',
+  metadataBase: baseUrl,
+})
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
