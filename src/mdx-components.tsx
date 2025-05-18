@@ -3,6 +3,7 @@ import { CodeBlock, Pre } from 'fumadocs-ui/components/codeblock'
 import { Step, Steps } from 'fumadocs-ui/components/steps'
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs'
 import defaultMdxComponents from 'fumadocs-ui/mdx'
+import GithubCodeBlock from '@/components/github-code-block'
 
 export function getMDXComponents(components?: MDXComponents): MDXComponents {
   return {
@@ -16,6 +17,7 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     Tabs,
     Step,
     Steps,
+    GithubCodeBlock,
     ...components,
   }
 }
