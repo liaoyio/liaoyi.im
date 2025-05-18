@@ -19,7 +19,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
       <body className={cn('relative flex min-h-svh flex-col overflow-x-hidden')}>
-        <RootProvider search={{ options: { type: 'static' } }}>
+        <RootProvider search={{ options: { type: 'fetch' } }}>
           {children}
         </RootProvider>
       </body>
