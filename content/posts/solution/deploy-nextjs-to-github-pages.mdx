@@ -1,0 +1,359 @@
+---
+title: Next.js 项目静态部署到 GitHub Pages
+description: 将 Next.js 项目静态部署到 GitHub Pages 指北 🪅
+date: 2025-04-28
+author: 'liaoyi'
+tags: [Deploy, Fumadocs, Next.js, 'Static site' ]
+---
+
+在开始部署前，我们需要为项目部署做如下准备：
+
+<Steps>
+
+<Step>
+
+## 设置静态导出
+
+
+```ts title="next.config.mjs"
+import { createMDX } from 'fumadocs-mdx/next'
+
+/** @type {import('next').NextConfig} */
+const config = {
+  reactStrictMode: true,
+  output: 'export', // 设置静态导出
+  pageExtensions: ['js', 'jsx', 'md', 'mdx', 'ts', 'tsx'],
+  images: { unoptimized: true },
+  experimental: { viewTransition: true },
+  typescript: { ignoreBuildErrors: true },
+  eslint: { ignoreDuringBuilds: true },
+  serverExternalPackages: [
+    'ts-morph',
+    'typescript',
+    'oxc-transform',
+    'twoslash',
+  ],
+}
+const withMDX = createMDX()
+export default withMDX(config)
+
+```
+
+</Step>
+
+<Step>
+
+## 使用静态搜索
+
+要使用 Next.js 静态导出，我们需要将 Fumadocs 的搜索功能改为静态，参考 [Static Export](https://fumadocs.dev/docs/headless/search/orama#static-export)
+
+
+1. 使用静态搜索
+在 src/app/api/search/route.ts 中添加以下代码：
+
+```ts title="src/app/api/search/route.ts"
+import { createSearchAPI } from 'fumadocs-core/search/server'
+import { postsSource } from '@/lib/source'
+
+export const revalidate = false
+
+export const { staticGET: GET } = createSearchAPI('advanced', {
+  indexes: [
+    ...postsSource
+      .getPages()
+      .filter(page => !page.data.draft) // Filter out draft posts
+      .map((page) => {
+        return {
+          title: page.data.title,
+          description: page.data.description,
+          url: page.url,
+          id: page.url,
+          structuredData: page.data.structuredData,
+          tag: 'blog',
+        }
+      }),
+  ],
+})
+```
+
+2. 配置静态搜索使其生效（非必要）
+
+你可以在 src/app/layout.tsx 中，声明式的添加 `static` 标记，当然也可以不配置，fumadocs 默认会自动匹配。
+
+```ts title="src/app/layout.tsx"
+import { RootProvider } from 'fumadocs-ui/provider'
+
+export default function Layout({ children }: { children: ReactNode }) {
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <body className={cn('relative flex min-h-svh flex-col overflow-x-hidden')}>
+        <RootProvider search={{ options: { type: 'static' } }}> // [!code highlight]
+          {children}
+        </RootProvider> // [!code highlight]
+      </body>
+    </html>
+  )
+}
+```
+
+</Step>
+
+
+<Step>
+
+
+## 编写 workflow
+
+在你的项目根目录新建 `.github/workflows/deploy.yml` 文件，添加如下 workflows 脚本：
+
+```yml title=".github/workflows/deploy.yml"
+
+# 使用 pnpm 构建Next.js静态站点，并部署到 GitHub Pages 的工作流
+
+name: Deploy Next.js site to Pages # workflow 名称
+#  以下两种情况下触发 workflow
+on:
+  # 当代码推送到 main 分支时自动运行
+  push:
+    branches: [main]
+
+  # 手动点击 GitHub Actions 的 “Run workflow” 按钮时运行
+  workflow_dispatch:
+
+# 🔐 权限配置：设置 GITHUB_TOKEN 权限，以允许部署到 GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 🚦 并发控制：防止同时部署多个版本。相同的部署会排队，但不会中断当前进行中的部署
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+# 👷 构建 Job
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: latest
+          run_install: false
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        run: |
+          echo "store-path=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.store-path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Setup Pages # 配置 GitHub Pages
+        uses: actions/configure-pages@v4
+
+      - name: Restore Next.js cache # 使用 Next.js 的构建缓存，加快编译速度。
+        uses: actions/cache@v4
+        with:
+          path: |
+            .next/cache
+          # 每当包或源文件发生更改时，生成新的缓存
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/pnpm-lock.yaml') }}-${{ hashFiles('**.[jt]s', '**.[jt]sx') }}
+          # 如果源文件已更改，但包未更改，则使用之前的缓存构建
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('**/pnpm-lock.yaml') }}-
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build with Next.js
+        run: pnpm build
+
+      - name: Upload artifact # 上传打包好的文件
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./out
+
+  # 🚀 部署 Job
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build # 等 build 任务完成后再执行部署
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+```
+
+</Step>
+
+<Step>
+
+## 创建 GitHub 远程仓库
+
+现在，登入你的 GitHub， 新建一个仓库，比如我的 GitHub 个人主页为 https://github.com/liaoyio ，那么创建的仓库名为 `liaoyio.github.io`，使用这个仓库名是必要的，会帮你省去很多踩坑时间。
+
+如果你非要固执己见的使用其他格式的仓库名称将 Next.js 静态导出并部署到 GitHub Pages，请参考 [自定义仓库部署到 GitHub Pages](#自定义仓库部署到-github-pages)
+
+
+
+</Step>
+
+
+<Step>
+
+## 推送代码到远程仓库
+
+将代码推送到你创建的远程仓库，推送后， GitHub Actions 将会自动部署站点，你可以前往你的远程仓库项目地址查看 GitHub Actions运行状态，当部署成功后，你可以在浏览器地址栏输入你的项目名查看效果。
+
+</Step>
+
+</Steps>
+
+---
+
+## 自定义仓库部署到 GitHub Pages
+
+以下是记录我使用自定义仓库名将 Next.js 静态导出后部署到 GitHub Pages 时碰到的一些问题。
+
+- GitHub 用户名： _liaoyio_
+- 仓库名称：_liaoyi.im_
+
+
+###  1. 静态资源问题
+当部署成功后我访问 , 发现无法加载静态资源
+
+```tsx
+GitHub 仓库地址： https://github.com/liaoyio/liaoyi.im
+部署后访问地址：https://liaoyio.github.io/liaoyi.im/
+```
+
+此时的静态资源指向为：
+
+```tsx
+ https://liaoyio.github.io/_next/static/css/6f5cc6a082c8cdf9.css
+```
+
+问题原因：Next.js 默认构建出的路径是基于根目录 `/`，而 GitHub Pages 部署到的是子路径 `/liaoyi.im/`。
+
+#### ✅ 解决方案：
+配置 `basePath` 和 `assetPrefix`
+
+```tsx
+// next.config.mjs
+
+import { createMDX } from 'fumadocs-mdx/next'
+
+/** @type {import('next').NextConfig} */
+const config = {
+  output: 'export',
+  basePath: '/liaoyi.im',
+  assetPrefix: '/liaoyi.im/',
+  trailingSlash: true,
+  //...
+}
+const withMDX = createMDX()
+export default withMDX(config)
+```
+
+
+
+### 2. public 路径问题
+
+当设置好  `basePath` 和 `assetPrefix` 重新部署后，静态资源访问的成功解决了，但是在访问站点时，更棘手的问题出现了， 自定义仓库里 public/xxx.png 的资源无法正常显示。
+
+```plain
+# GitHub 仓库地址 public 资源路径
+https://github.com/liaoyio/liaoyi.im/public/avatar.jpg
+
+# ❌ 部署后，静态站点请求的 public 资源路径
+https://liaoyio.github.io/avatar.jpg
+
+# ✅ 部署后，静态站期望请求的 public 资源路径
+https://liaoyio.github.io/liaoyi.im/avatar.jpg
+
+```
+
+<Callout type="warn">
+  public 文件夹下的资源路径错误，访问变成了 `https://liaoyio.github.io/avatar.jpg` (路径丢失了 /liaoyi.im/)。
+</Callout>
+
+
+这是因为在 Next.js 中使用 `public/avatar.jpg` 时，路径会自动解析为 根路径 `/avatar.jpg`，这在 GitHub Pages 子路径部署中是 无法正常工作的。
+
+
+
+#### ⚠️ 解决方案
+使用 `next/config` 读取运行时配置，将静态资源路径写成相对 `basePath` 的路径。
+
+
+
+使用 basePath 拼接路径（推荐）
+
+```typescript
+import getConfig from 'next/config'
+const { publicRuntimeConfig } = getConfig()
+
+
+const avatarSrc = `${publicRuntimeConfig.basePath}/avatar.jpg`
+```
+
+并在 next.config.mjs 中添加：
+
+```typescript
+const nextConfig = {
+  output: 'export',
+  basePath: '/liaoyi.im',  // 你的 GitHub Pages 子仓库路径
+  assetPrefix: '/liaoyi.im/', // 你的 GitHub Pages 子仓库路径
+  trailingSlash: true,
+  publicRuntimeConfig: {
+    basePath: '/liaoyi.im'
+  }
+}
+```
+
+使用：
+
+```typescript
+<img src={`${basePath}/avatar.jpg`} />
+```
+
+注意使用 next/image 无需手动添加路径，Next.js 会自动将 /avatar.jpg 替换成 /liaoyi.im/avatar.jpg。
+
+```typescript
+import Image from 'next/image'
+
+<Image
+  src="/avatar.jpg" // 注意：保留这个写法
+  width={100}
+  height={100}
+  alt="avatar"
+/>
+```
+
+
+<Callout type="warn">
+ 当有 css 访问 public 文件资源时，此方法将无法适用。
+</Callout>
+
+
+
+
+
+
