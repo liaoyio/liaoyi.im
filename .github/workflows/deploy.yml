@@ -25,8 +25,6 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      NEXT_PUBLIC_SITE_URL: liaoyi.im
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -74,8 +72,6 @@ jobs:
 
       - name: Build with Next.js
         run: pnpm build
-        env:
-          NEXT_PUBLIC_SITE_URL: liaoyi.im
 
       - name: Upload artifact # 上传打包好的文件
         uses: actions/upload-pages-artifact@v3
