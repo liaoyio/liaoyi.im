@@ -64,11 +64,11 @@ The component accepts the following props:
 ### Display a Complete File
 
 ```tsx title="usage"
-<GithubCodeBlock url="https://github.com/rjvim/react-component-library-starter/blob/main/lerna.json" />
+<GithubCodeBlock url="https://github.com/liaoyio/liaoyi.im/blob/main/tsconfig.json" />
 ```
 
 <GithubCodeBlock
-  url="https://github.com/rjvim/react-component-library-starter/blob/main/lerna.json"
+  url="https://github.com/liaoyio/liaoyi.im/blob/main/tsconfig.json"
   wrapper={{ title: "result" }}
 />
 
@@ -78,7 +78,7 @@ You can extract specific lines from a file by adding a line reference to the URL
 
 ```tsx title="usage"
 <GithubCodeBlock
-  url="https://github.com/rjvim/react-component-library-starter/blob/main/lerna.json#L2-L4"
+  url="https://github.com/liaoyio/liaoyi.im/blob/main/tsconfig.json#L2-L4"
   extractLines={true}
 />
 ```
@@ -91,7 +91,7 @@ You can highlight specific lines using the `highlightLines` prop:
 
 ```tsx title="usage"
 <GithubCodeBlock
-  url="https://github.com/rjvim/react-component-library-starter/blob/main/lerna.json"
+  url="https://github.com/liaoyio/liaoyi.im/blob/main/tsconfig.json"
   highlightLines="{2,4}"
 />
 ```
@@ -104,7 +104,7 @@ You can extract specific lines and highlight them at the same time:
 
 ```tsx title="usage"
 <GithubCodeBlock
-  url="https://github.com/rjvim/react-component-library-starter/blob/main/lerna.json#L2-L4"
+  url="https://github.com/liaoyio/liaoyi.im/blob/main/tsconfig.json#L2-L4"
   extractLines={true}
   highlightLines="{2}"
 />
@@ -117,7 +117,7 @@ You can extract specific lines and highlight them at the same time:
 The component will automatically use line references in the URL hash for highlighting if no `highlightLines` prop is provided:
 
 ```tsx title="usage"
-<GithubCodeBlock url="https://github.com/rjvim/react-component-library-starter/blob/main/lerna.json#L2-L4" />
+<GithubCodeBlock url="https://github.com/liaoyio/liaoyi.im/blob/main/tsconfig.json#L2-L4" />
 ```
 
 This will highlight lines 2-4 if `extractLines` is `false`:
@@ -130,7 +130,7 @@ You can override the automatic URL-based highlighting by providing your own `hig
 
 ```tsx title="usage"
 <GithubCodeBlock
-  url="https://github.com/rjvim/react-component-library-starter/blob/main/lerna.json#L2-L4"
+  url="https://github.com/liaoyio/liaoyi.im/blob/main/tsconfig.json#L2-L4"
   highlightLines="{3}"
 />
 ```

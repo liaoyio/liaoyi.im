@@ -16,7 +16,7 @@ export const baseOptions: BaseLayoutProps = {
           src="/avatar.jpg"
           width={28}
           height={28}
-          alt="rjv.im avatar"
+          alt="ly avatar"
           className="rounded-full"
         />
         {' '}

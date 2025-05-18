@@ -3,11 +3,7 @@ import { createMDX } from 'fumadocs-mdx/next'
 /** @type {import('next').NextConfig} */
 const config = {
   reactStrictMode: true,
-  output: 'export',
-  trailingSlash: true,
   pageExtensions: ['js', 'jsx', 'md', 'mdx', 'ts', 'tsx'],
-  basePath: '/liaoyi.im',
-  assetPrefix: '/liaoyi.im/',
   images: { unoptimized: true },
   experimental: { viewTransition: true },
   typescript: { ignoreBuildErrors: true },
@@ -19,5 +15,6 @@ const config = {
     'twoslash',
   ],
 }
+
 const withMDX = createMDX()
 export default withMDX(config)
