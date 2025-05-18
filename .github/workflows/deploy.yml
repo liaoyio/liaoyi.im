@@ -80,7 +80,7 @@ jobs:
       - name: Upload artifact # 上传打包好的文件
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./apps/web/out
+          path: ./out
 
   # 🚀 部署 Job
   deploy:
