@@ -35,7 +35,7 @@ export default function Hero() {
           <div>
             <Announcement>
               <AnnouncementTag>Latest</AnnouncementTag>
-              <Link href="blog/solution/setup-blog-with-fuma-docs">
+              <Link href="posts/solution/setup-blog-with-fumadocs">
                 <AnnouncementTitle>
                   Setup a Blog using FumaDocs
                   <ArrowUpRightIcon
@@ -87,7 +87,7 @@ export default function Hero() {
                 <Social.x className="w-4 h-4" />
               </Button>
             </Link>
-            <Link href="blog" target="_blank">
+            <Link href="posts" target="_blank">
               <Button size="lg" className="gap-4">
                 View Posts
                 <MoveRight className="w-4 h-4" />
