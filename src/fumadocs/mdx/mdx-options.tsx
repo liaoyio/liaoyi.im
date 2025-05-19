@@ -6,7 +6,8 @@ import {
   transformerRemoveNotationEscape,
 } from '@shikijs/transformers'
 
-import { rehypeCodeDefaultOptions } from 'fumadocs-core/mdx-plugins'
+import { rehypeCodeDefaultOptions, remarkAdmonition } from 'fumadocs-core/mdx-plugins'
+
 import { remarkInstall } from 'fumadocs-docgen'
 import { transformerTwoslash } from 'fumadocs-twoslash'
 import rehypeKatex from 'rehype-katex'
@@ -14,7 +15,6 @@ import remarkMath from 'remark-math'
 
 export const mdxOptions: DefaultMDXOptions = {
   rehypeCodeOptions: {
-
     inline: 'tailing-curly-colon',
     themes: { light: 'github-light', dark: 'github-dark' },
     transformers: [
@@ -25,6 +25,6 @@ export const mdxOptions: DefaultMDXOptions = {
       transformerMetaHighlight(),
     ],
   },
-  remarkPlugins: [remarkMath, remarkInstall],
+  remarkPlugins: [remarkMath, remarkInstall, remarkAdmonition],
   rehypePlugins: v => [rehypeKatex, ...v],
 }

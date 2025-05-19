@@ -1,0 +1,228 @@
+---
+title: TypeScript
+description: 一些 TypeScript 技巧备忘录📝。
+date: 2025-05-16
+tags: ['TypeScripts', 'Tips']
+author: liaoyi
+series: TypeScript
+seriesPart: 1
+---
+
+## 可选类型不一定符合预期
+
+```ts twoslash
+const doThing = (ctx?: { traceId?: string }) => {}
+
+const doAnotherThing = (ctx: { traceId: string | undefined }) => {}
+
+const mainFunction = (ctx: { traceId?: string }) => {
+  doThing()
+  // 必须传入 traceId
+  doAnotherThing({ traceId: ctx.traceId })
+}
+```
+
+## 使用 Pick 和 Omit
+
+```ts twoslash
+interface Album {
+  id: string
+  title: string
+  artist: string
+  releaseYear?: number
+  genre?: { parentGenre?: string, subGenre?: string }
+}
+
+// Pick 挑选
+type AlbumData1 = Pick< Album, 'title' | 'artist' >
+
+// Omit 省略
+type AlbumData2 = Omit< Album, 'id' | 'releaseYear' | 'genre' >
+
+// extract 提取
+// ❌ 不起作用
+type AlbumData3 = Extract< Album, 'id' | 'artist' >
+
+// exclude 排除
+// 全量返回
+type AlbumData4 = Exclude< Album, 'id' | 'artist' >
+
+// ⚠️： 提取和排除只对联合类型起作用
+
+```
+
+## 使用 Extract 提取类型
+
+```ts twoslash
+type Example = 'a' | 'b' | 1 | 2 | 8 | 'as'
+
+// extract 提取
+type Numbers = Extract<Example, number>
+
+type Strings = Extract<Example, string>
+
+// Exclude 排除
+type Numbers2 = Exclude<Example, string>
+
+type Strings2 = Exclude<Example, number>
+
+```
+
+
+
+## 使用 Exclude 排除类型
+
+```ts twoslash
+// exclude 排除
+
+type AlbumState =
+  | {
+    type: 'released'
+    releaseDate: string
+  }
+  | {
+    type: 'recording'
+    studio: string
+  }
+  | {
+    type: 'mixing'
+    engineer: string
+  }
+
+// exclude 排除
+type NotReleased = Exclude< AlbumState, { type: 'released' } >
+
+```
+
+
+## 更友好的显示类型
+
+```ts twoslash
+type ComplexType = {
+  a: string
+  b: number
+} & {
+  c: boolean
+} & {
+  d: string []
+}
+
+type ComplexType2 = {
+  a: string
+  b: number
+} & Omit<{ c: boolean } & { d: Record<'d', string[]> }, 'c'>
+& { e: 'en_US' | 'zh_CN' }
+
+type ShowMe = ComplexType
+type ShowMe2 = ComplexType2
+
+export type Prettify<T> = {
+  [K in keyof T]: T[K]
+} & {} // 添加 & {} 避免类型保持为引用形式
+
+type ShowMe3 = Prettify<ComplexType2>
+
+type WithFormProps = { isForm: true, onSubmit: () => void }
+type WithoutFormProps = { isForm?: false, onSubmit?: never }
+
+type DialogProps = { open: boolean, onClose: () => void } & (WithFormProps | WithoutFormProps)
+
+type DialogProps_ = Prettify<DialogProps>
+
+```
+
+
+## 在字面量联合类型使用魔法 🧙‍♀️
+
+
+```ts twoslash
+type ModelNames =
+  | 'gtp-4o'
+  | 'o3-mini'
+  | 'claude-sonnet-3.7'
+  | 'gemini-1.5-flash'
+  | (string & {})
+
+const GTP: ModelNames = 'gtp-4o'
+const model: ModelNames = 'qianwen'
+
+// 平替方案
+type LooseAutocomplete<T extends string> = T | Omit<string, T>
+type Color = LooseAutocomplete<'red' | 'green' | 'blue'>
+
+// ✅ 预设值
+const a: Color = 'red'
+
+// ✅ 自定义字符串（例如服务端配置返回的新值）
+const b: Color = 'purple'
+
+// ❌ 错误示例：number 不符合 string 类型
+// const c: Color = 123
+```
+
+
+## 映射类型
+
+```ts twoslash
+type User = {
+  id: string
+  name: string
+  age: number
+}
+
+type UserTransfromed = {
+  // [K in keyof User]: K
+  // ========= ⬇️ =========
+  // [K in keyof User]: [K]
+  // ========= ⬇️ =========
+  [K in keyof User]: User[K]
+}
+
+type UserTransfromed_2 = {
+  readonly [K in keyof User]?: User[K]
+}
+
+type UserTransfromed_3 = {
+  [K in keyof User as Capitalize<K>]: User[K]
+}
+
+type UserTransfromed_4 = {
+  [K in keyof User as `get${Capitalize<K>}`]: User[K]
+}
+
+type UserTransfromed_5 = {
+  [K in keyof User as `get${Capitalize<K>}`]: () => User[K]
+}
+
+type Setters<T extends object> = {
+  [K in Extract<keyof T, string> as `set${Capitalize<K>}`]?: (value: T[K]) => T[K]
+}
+```
+
+
+## 索引映射类型 (IIMT)
+
+```ts  twoslash
+type Prettify<T> = { [K in keyof T]: T[K] } & {} // 添加 & {} 避免类型保持为引用形式
+
+type Actions = {
+  login: { userName: string, password: string }
+  logout: { reason: string }
+  update: { id: string, data: unknown }
+}
+
+type ActionAsDiscoUnion = {
+  // [K in keyof Actions]: { type: K } & Actions[K]
+  // ========= ⬇️ =========
+  [K in keyof Actions]: Prettify<{ type: K } & Actions[K]>
+}
+
+// 🌰 索引映射类型的基本使用
+type Values_ = Actions['login']
+
+// type Values_2 = Actions['login' | 'logout' | 'update']
+// ========= ⬇️ =========
+type Values = Actions[keyof Actions]
+
+type ActionAsDiscoUnion_ = ActionAsDiscoUnion[keyof Actions]
+```

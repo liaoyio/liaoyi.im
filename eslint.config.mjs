@@ -16,6 +16,14 @@ export default [
     },
   },
   {
+    files: ['./src/snippet/**/*.ts'],
+    rules: {
+      'antfu/top-level-function': 'off',
+      'unused-imports/no-unused-vars': 'off',
+      'ts/consistent-type-definitions': 'off',
+    },
+  },
+  {
     rules: {
       'node/prefer-global/process': 'off',
     },
