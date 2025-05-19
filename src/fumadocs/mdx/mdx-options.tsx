@@ -14,6 +14,7 @@ import remarkMath from 'remark-math'
 
 export const mdxOptions: DefaultMDXOptions = {
   rehypeCodeOptions: {
+
     inline: 'tailing-curly-colon',
     themes: { light: 'github-light', dark: 'github-dark' },
     transformers: [
