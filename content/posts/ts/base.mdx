@@ -22,6 +22,18 @@ const mainFunction = (ctx: { traceId?: string }) => {
 }
 ```
 
+
+## 模板字符串类型
+
+```ts twoslash
+
+type SupportedLangs = "en" | "pt"
+type FooterIds = "header" | "footer"
+
+type AllLocaleIDs = `${SupportedLangs}_${FooterIds}`
+```
+- [玩转 TS 模板字符串类型](https://juejin.cn/post/7129864202604249096)
+
 ## 使用 Pick 和 Omit
 
 ```ts twoslash
@@ -93,6 +105,9 @@ type AlbumState =
 type NotReleased = Exclude< AlbumState, { type: 'released' } >
 
 ```
+
+- 更多内置类型请参考：[TypeScript 工具类型](https://bosens-china.github.io/Typescript-manual/download/zh/reference/utility-types.html#%E7%9B%AE%E5%BD%95)
+
 
 
 ## 更友好的显示类型
@@ -200,6 +215,20 @@ type Setters<T extends object> = {
 ```
 
 
+```ts twoslash
+// ** 🔄 映射类型 ** -> 动态转换对象类型
+type Artist = { name: string; bio: string }
+
+type SubscriberType<T> = {
+  [Property in keyof T]: (value: T[Property]) => void
+}
+
+type ArtistSubscriber = SubscriberType<Artist>
+```
+
+- [Capitalize](https://www.typescriptlang.org/docs/handbook/2/template-literal-types.html#capitalizestringtype): 转换字符串类型第一个字母为大写。
+
+
 ## 索引映射类型 (IIMT)
 
 ```ts  twoslash
@@ -217,7 +246,7 @@ type ActionAsDiscoUnion = {
   [K in keyof Actions]: Prettify<{ type: K } & Actions[K]>
 }
 
-// 🌰 索引映射类型的基本使用
+// 🌰 索引映射类型的基本使用 （📝 从现有值推导类型）
 type Values_ = Actions['login']
 
 // type Values_2 = Actions['login' | 'logout' | 'update']
@@ -225,4 +254,77 @@ type Values_ = Actions['login']
 type Values = Actions[keyof Actions]
 
 type ActionAsDiscoUnion_ = ActionAsDiscoUnion[keyof Actions]
+```
+
+
+## + - 修饰符
+
+`+` `-` 修饰符可以添加或去掉 `readonly` 和 `?`，如：
+
+```ts  twoslash
+type LockedAccount = { readonly id?: string, readonly name?: string }
+
+// 去除所有属性上的 readonly 和可选修饰符
+type CreateMutable<T> = {
+  -readonly [K in keyof T]-?: T[K]
+}
+
+type UnlockedAccount = CreateMutable<LockedAccount>
+
+// 给所有属性添加 readonly 和可选修饰符
+type CreateMutableAndReadonly<T> = {
+  +readonly [K in keyof T]+?: T[K]
+}
+
+type FullyMutable = CreateMutableAndReadonly<UnlockedAccount>
+```
+
+
+## 通过 as 重新（强制）映射类型
+
+在TypeScript 4.1及更高版本中，可以在映射类型中使用as子句重新映射映射类型中的键，形式如下：
+
+```ts  twoslash
+
+type NewKeyType = KeyType
+// ---cut---
+type MappedTypeWithNewProperties<Type> = {
+    [Properties in keyof Type as NewKeyType]: Type[Properties]
+}
+```
+
+🌰 示例一，根据已知类型的键映射出新类型键：
+
+
+```ts  twoslash
+type Getters<Type> = {
+    [Property in keyof Type as `get${Capitalize<string & Property>}`]: () => Type[Property]
+}
+
+interface Person {
+    name: string
+    age: number
+    location: string
+}
+
+type LazyPerson = Getters<Person>
+```
+
+🌰 示例二：映射任意联合类型：
+
+```ts  twoslash
+type EventConfig<Events extends { kind: string }> = {
+    [E in Events as E["kind"]]: (event: E) => void
+}
+
+type SquareEvent = { kind: "square", x: number, y: number }
+type CircleEvent = { kind: "circle", radius: number }
+
+type Config = EventConfig<SquareEvent | CircleEvent>
+
+// 使用示例
+const _config: Config = {
+  square: ({ kind, x, y }) => {},
+  circle: ({ kind, radius }) => {}
+}
 ```
