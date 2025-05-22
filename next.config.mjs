@@ -4,7 +4,10 @@ import { createMDX } from 'fumadocs-mdx/next'
 const config = {
   reactStrictMode: true,
   pageExtensions: ['js', 'jsx', 'md', 'mdx', 'ts', 'tsx'],
-  images: { unoptimized: true },
+  images: {
+    // disable the fucking Next Image optimization!
+    unoptimized: true,
+  },
   experimental: { viewTransition: true },
   typescript: { ignoreBuildErrors: true },
   eslint: { ignoreDuringBuilds: true },
