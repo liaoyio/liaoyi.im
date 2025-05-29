@@ -7,8 +7,10 @@ import { Header } from '@/fumadocs/components/header'
 import { Social } from '@/fumadocs/components/icons/social'
 
 const footerNavigation = [
-  { name: 'X', href: 'https://x.com/liaoyia', icon: Social.x },
+  { name: '语雀', href: 'https://www.yuque.com/yi-notes', icon: Social.yuque },
   { name: 'GitHub', href: 'https://github.com/liaoyio', icon: Social.github },
+  { name: 'X', href: 'https://x.com/liaoyia', icon: Social.x },
+  { name: 'Google', href: 'mailto:a2417276459@gmail.com', icon: Social.gmail },
 ]
 
 export default function Layout({ children }: { children: ReactNode }) {

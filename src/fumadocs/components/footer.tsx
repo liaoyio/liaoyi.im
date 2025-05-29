@@ -20,7 +20,7 @@ export default function Footer({
             <a
               key={item.name}
               href={item.href}
-              className="text-gray-400 hover:text-gray-500"
+              className="dark:text-gray-400 dark:hover:text-gray-500 text-black hover:text-gray-600"
               target="_blank"
               rel="noopener noreferrer"
             >
