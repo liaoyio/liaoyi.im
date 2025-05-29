@@ -1,3 +1,4 @@
+import CodeDisplay from './code-display'
 import CodeSandboxEmbed from './code-sandbox'
 import GithubCodeBlock from './github-code-block'
 import GitHubGistEmbed from './github-gist'
@@ -10,4 +11,5 @@ export const MyCustomMDXComponents = {
   GitHubGistEmbed,
   StackBlitzEmbed,
   XEmbed,
+  CodeDisplay,
 }

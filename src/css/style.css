@@ -14,15 +14,19 @@
 @source '../../node_modules/fumadocs-ui/dist/**/*.js';
 
 
+button:not(:disabled),
+[role="button"]:not(:disabled) {
+  cursor: pointer;
+}
+
+button:disabled,
+[role="button"][aria-disabled="true"] {
+  cursor: default;
+}
+
+
 /* animation */
 
-.set-fade {
-  opacity: 0;
-
-  @media (prefers-reduced-motion) {
-    opacity: 1;
-  }
-}
 .fade {
   animation: fade 0.3s forwards;
   opacity: 0;
@@ -54,6 +58,8 @@
     transform: translateY(0px);
   }
 }
+
+
 .reveal {
   animation: reveal 0.8s cubic-bezier(0.3, 0, 0, 1) forwards;
   opacity: 0;
@@ -85,6 +91,8 @@
     transform: translateY(0px);
   }
 }
+
+
 @keyframes reveal {
   to {
     transform: translateY(0px);
@@ -101,6 +109,7 @@
     transform: scale(1);
   }
 }
+
 .scaleFade {
   animation: scaleFade 0.5s var(--ease-bounce) forwards;
   opacity: 0;
@@ -112,6 +121,7 @@
     transform: scale(1);
   }
 }
+
 @keyframes scaleFade {
   to {
     transform: scale(1);
