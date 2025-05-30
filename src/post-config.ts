@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import type { BlogConfig } from '@/fumadocs/types'
-import { Brain, Code, Cog, Lightbulb, LucideBook, Megaphone, Rocket, Users, Wrench } from 'lucide-react'
+import { Brain, Carrot, Cog, LucideBook, Volleyball, Wrench } from 'lucide-react'
 import { Social } from '@/fumadocs/components/icons/social'
 
 export const blogConfig = {
@@ -76,59 +76,17 @@ export function createBlogMetadata(
   }
 }
 
-// Moved from lib/categories.ts
 export function getCategoryBySlug(slug: string) {
   const categories = {
-    'behind-the-scenes': {
-      label: 'Behind the Scenes',
-      icon: Wrench,
-      description:
-        'Raw process of building—why and how you create tools, launches, updates, redesigns.',
-    },
-    'dev-life': {
-      label: 'Dev Life',
-      icon: Code,
-      description:
-        'Personal takes on being a developer/founder—tips, lessons, workflows.',
-    },
-    'plans': {
-      label: 'Plans',
-      icon: Lightbulb,
-      description:
-        'Public brainstorming—future features, tool concepts, Teurons\' direction.',
-    },
     'idea': {
-      label: 'Idea',
+      label: '探索和思考',
       icon: Brain,
-      description:
-        'Exploratory thoughts and wild concepts for Teurons and beyond.',
+      description: '记录一些头脑风暴、探索和思考',
     },
     'tools-tech': {
-      label: 'Tools Tech',
+      label: '生产力工具',
       icon: Cog,
-      description: 'Deep dives into tech stacks, tool mechanics, trends.',
-    },
-    'team': {
-      label: 'Team',
-      icon: Users,
-      description: 'Teurons\' startup journey, team dynamics, Betalectic roots.',
-    },
-    'startup': {
-      label: 'Startup',
-      icon: Rocket,
-      description: 'Growth stories and insights from Teurons and Betalectic.',
-    },
-    'opinions': {
-      label: 'Opinions',
-      icon: Megaphone,
-      description:
-        'Subjective, wild, gut-hunch takes—less informed, out-of-box rants.',
-    },
-    'deep-domain-problems': {
-      label: 'Deep Domain Problems',
-      icon: LucideBook,
-      description:
-        'Isolated series like a book/course—tackling big, specific domain issues.',
+      description: '用于记录日常生活、工作、开发时的一些增效工具使用',
     },
   }
 
@@ -142,16 +100,20 @@ export function getCategoryBySlug(slug: string) {
 
 export function getSeriesBySlug(slug: string) {
   const series = {
-    'x': {
-      label: 'Series X',
-      icon: LucideBook,
-      description:
-        'A comprehensive series on Zero Trust security architecture.',
+    'seo': {
+      label: 'SEO 优化',
+      icon: Carrot,
+      description: '关于前端开发工程师需要知道的 SEO 知识系列文章。',
     },
-    'building-react-component-library': {
-      label: 'Building React Component Library',
-      icon: LucideBook,
-      description: 'A series on building a React component library.',
+    'qa': {
+      label: '踩坑记录',
+      icon: Wrench,
+      description: '记录日常开发碰到的问题，和解决方案',
+    },
+    'react-component': {
+      label: 'React 组件',
+      icon: Volleyball,
+      description: '关于构建 React 组件的系列文章。',
     },
     // Add more series here as needed
   }

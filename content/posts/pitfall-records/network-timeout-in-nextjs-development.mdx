@@ -1,0 +1,90 @@
+---
+title: 国内环境使用 Next.js 框架无法访问外网资源导致无法在开发环境正常调试
+description: 本文将介绍如果解决国内使用 Next.js 时，访问外网资源（如： Google 字体）或本地调试三方登录等网络错误问题
+date: 2025-03-01
+author: 'liaoyi'
+series: qa
+seriesPart: 1
+tags: [ Deploy, Next.js, 'Network' ]
+---
+
+
+## 前言
+
+今天上午使用 Next.js 集成 better-auth 实现 Google  账号的登录的时候，本地 localhost 测试时总是连接失败，但是部署到线上确可以调通。
+
+
+## 问题复现
+
+
+<img
+src="https://tg-image.ooooyi.workers.dev/file/BQACAgUAAxkDAAMWaDnSAuvgVwRQUmRHi1IDsrY4mpMAAuMUAAIIPNBV6ZyTwx5pS2c2BA.png"
+width='400'
+style={{ margin: '0 auto' }}
+/>
+
+
+
+<img
+src="https://tg-image.ooooyi.workers.dev/file/BQACAgUAAxkDAAMXaDnSMpOTz_1qqzdte1dReS8QCr8AAuQUAAIIPNBV1JzoO4G3rhA2BA.png"
+width='400'
+style={{ margin: '20px auto' }}
+
+/>
+
+
+<img
+src="https://tg-image.ooooyi.workers.dev/file/BQACAgUAAxkDAAMYaDnSRzTiHVuYfSZwDsMuvj38PKkAAuUUAAIIPNBVK5mueStVNoU2BA.png"
+width='100%'
+style={{ margin: '12px auto' }}
+/>
+
+## 解决办法
+
+很多基于 Next 开发都会遇到这个问题，可以写一个简单的脚本，思路是将 server 端的请求通过代理转发修复国内无法访问 Google 等服务问题。
+
+
+1. 新增一个 proxy-setup.ts  文件，代码如下：
+
+```js title="proxy.cjs"
+const { ProxyAgent } = require('undici')
+
+const { fetch: originalFetch } = global
+const proxyAgent = new ProxyAgent('http://127.0.0.1:7897/') // 本地代理映射端口
+
+global.fetch = (url, opts) => {
+  const urlStr = url.toString()
+
+  // 只对特定域名使用代理
+  if (urlStr.includes(":3000/api/crypto")) {
+    return originalFetch(url, opts)
+  }
+
+  // 请求使用代理
+  opts.dispatcher = proxyAgent
+
+  try {
+    return originalFetch(url, opts)
+  }
+  catch (error) {
+    console.error('Fetch error:', error)
+    throw error
+  }
+}
+```
+
+
+2. 在 `next.config.ts` 中使用
+
+```ts title="next.config.ts"
+if (process.env.NODE_ENV === 'development') {
+  import ('./src/server/proxy.cjs')
+}
+
+/** @type {import('next').NextConfig} */
+const config = {
+  reactStrictMode: true
+}
+
+export default config
+```
