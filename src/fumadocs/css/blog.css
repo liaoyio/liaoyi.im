@@ -13,6 +13,12 @@
   }
 }
 
+:is(html.light) .blog #nd-page article {
+  --color-fd-card: #fafafa;
+  --color-fd-secondary: #ededed80;
+}
+
+
 @layer utilities {
   .grid-magicpattern {
     width: 100%;

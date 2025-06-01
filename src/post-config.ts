@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import type { BlogConfig } from '@/fumadocs/types'
 import { Brain, Carrot, Cog, LucideBook, Volleyball, Wrench } from 'lucide-react'
+import { ReactQueryIcon } from '@/components/icons'
 import { Social } from '@/fumadocs/components/icons/social'
 
 export const blogConfig = {
@@ -83,6 +84,11 @@ export function getCategoryBySlug(slug: string) {
       icon: Brain,
       description: '记录一些头脑风暴、探索和思考',
     },
+    'react-query': {
+      label: 'React Query',
+      icon: ReactQueryIcon,
+      description: '关于如何使用 React Query，轻松解决前端开发时对异步状态的管理。',
+    },
     'tools-tech': {
       label: '生产力工具',
       icon: Cog,
@@ -104,6 +110,11 @@ export function getSeriesBySlug(slug: string) {
       label: 'SEO 优化',
       icon: Carrot,
       description: '关于前端开发工程师需要知道的 SEO 知识系列文章。',
+    },
+    'react-query': {
+      label: 'React Query',
+      icon: ReactQueryIcon,
+      description: '关于如何使用 React Query，轻松解决前端开发时对异步状态的管理',
     },
     'qa': {
       label: '踩坑记录',
