@@ -1,0 +1,197 @@
+---
+title: useQuery 其他参数用法详解
+description: 本文介绍 useQuery 其他参数使用技巧。
+date: 2025-05-24
+tags: ['react-query', '异步状态管理']
+author: liaoyi
+series: react-query
+seriesPart: 3
+---
+
+在实际项目中，我们常常需要根据不同场景对接口请求进行更细致的控制，比如：是否请求、请求顺序、是否轮询等。本文将深入介绍 useQuery 在这些高级场景下的使用方式。
+
+## 条件性请求（Conditional Queries）
+
+有时我们希望只有在满足某个条件时才发起请求，例如搜索关键词存在时才请求搜索结果。
+
+⚠️ 错误示范（违反 Hook 规则）：
+
+```tsx
+if (keyword) {
+  useQuery({
+    queryKey: ['search', keyword],
+    queryFn
+  })
+}
+```
+
+✅ 正确写法：通过 enabled 参数控制请求是否启用。
+
+```tsx
+useQuery({
+  queryKey: ['search', keyword],
+  queryFn,
+  enabled: !!keyword // keyword 存在时才请求 即：仅当 `enabled` 为 `true` 时，query 才会被触发。
+})
+```
+
+
+## 依赖性请求（Dependent Queries）
+
+有些请求依赖于另一个请求的结果，比如根据书名获取书籍信息，再根据书籍 ID 获取评论。
+
+❌ 不推荐：将多个请求写在一个 queryFn 中（耦合性高）
+
+```tsx
+useQuery({
+  queryKey: ['book', 'comments', bookTitle],
+  queryFn: async () => {
+    const book = await fetchBook(bookTitle)
+    const comments = await fetchBookComments(book.data.id)
+    return { book, comments }
+  }
+})
+```
+
+✅ 推荐方式：拆分为多个 query，并通过 enabled 控制请求时机
+
+```tsx
+const useBookDetail = (bookTitle: string) =>
+  useQuery({
+    queryKey: ['book', bookTitle],
+    queryFn: () => fetchBook(bookTitle),
+    enabled: !!bookTitle
+  })
+
+const useBookComments = (bookId?: string) =>
+  useQuery({
+    queryKey: ['comments', bookId],
+    queryFn: () => fetchBookComments(bookId!),
+    enabled: !!bookId
+  })
+
+const useBookDetailAndComments = (bookTitle: string) => {
+  const book = useBookDetail(bookTitle)
+  const comments = useBookComments(book.data?.id)
+  return { book, comments }
+}
+```
+
+这样不仅降低了耦合，还能分别缓存和复用每个请求的数据。
+
+
+
+## 轮询（Polling）
+
+如果你需要定时请求数据，比如检测支付是否完成，可以使用 `refetchInterval` 参数。
+
+### 1. 简单轮询：
+
+轮询通常用于那些需要实时性反馈的场景，比如查询用户是否完成支付。
+
+```tsx
+useQuery({
+  queryKey: ['list', { sort }],
+  queryFn,
+  refetchInterval: 5000, // 每 5 秒请求一次
+});
+```
+
+### 2. 条件轮询：仅在某些状态下持续轮询
+
+`refetchInterval` 也可以是一个函数。
+想象这样一个场景：前端通过轮询来得知用户是否完成支付，用户一旦完成支付轮询就该停止。
+
+```tsx
+useQuery({
+  //...,
+  refetchInterval: (query) => {
+    if (query.state.data?.finished) {
+      return false; // 停止轮询
+    }
+    return 3000; // 每 3 秒请求一次
+  }
+})
+```
+
+## 🚀 并发请求（Parallel Queries）
+
+
+### 1. Promise.all 简单实现（注意失败会中断所有请求）：
+
+
+```tsx
+const queryFn = async (bookId: string) => {
+  const [book, comments] = await Promise.all([
+    fetchBookDetail(bookId),
+    fetchBookComments(bookId)
+  ])
+
+  return { book, comments }
+}
+
+useQuery({
+  queryKey: ['bookWithComments', bookId],
+  queryFn
+})
+```
+
+<Callout type='warn' >
+当一些业务场景需要前端并发若干请求时，我们可以在 `queryFn` 里基于 `Promise.all` 来并发请求。
+这很好，但会让两个请求耦合在一起。任意请求的失败都会导致整个请求失败，且只有一个缓存 key，不利于细粒度的控制缓存。
+</Callout>
+
+
+### 2. 使用 `useQueries` 并发多个请求，支持更细粒度控制
+
+```tsx
+const ids = [1, 2, 3] // // 基于 ids 并发请求，可以动态控制请求数量
+
+const { data, pending } = useQueries({
+  queries: ids.map((id) => ({
+    queryKey: ['post', id],
+    queryFn: () => fetchPost(id),
+  })),
+  combine: (results) => ({
+    data: results.map((r) => r.data),
+    pending: results.some((r) => r.isPending)
+  })
+})
+
+```
+
+<Callout type='warn' >
+上面的代码通过调用 `useQuery` 多次，这也很好，但缺点是不能动态控制请求并发的数量。
+</Callout>
+
+
+
+### 3. 多请求并聚合结果示例：
+
+如果你明确并发的请求之间存在逻辑关联，或者需要动态控制并发数量，更推荐使用 `useQueries`。
+`useQueries` 的 `queries` 参数是一个数组，数组里的每一项都是一个 `useQuery` 的配置对象。
+基于 `combine` 可以实现更复杂的聚合逻辑。
+
+
+```tsx
+const { bookDetail, bookComments, isDetailAndCommentPending } = useQueries({
+  queries: [
+    {
+      queryKey: ['book', selectedBookId],
+      queryFn: () => fetchBookDetail(selectedBookId!),
+      enabled: !!selectedBookId
+    },
+    {
+      queryKey: ['bookComments', selectedBookId],
+      queryFn: () => fetchBookComments(selectedBookId!),
+      enabled: !!selectedBookId
+    }
+  ],
+  combine: ([bookDetail, bookComments]) => ({
+    bookDetail,
+    bookComments,
+    isDetailAndCommentPending: bookDetail.isPending || bookComments.isPending
+  })
+})
+
+```
