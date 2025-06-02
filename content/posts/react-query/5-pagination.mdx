@@ -1,0 +1,165 @@
+---
+title: 分页与无限滚动
+description: 在实际开发中，列表数据通常是分页加载的。React Query 不仅能优雅地处理分页请求，还提供了强大的工具支持无限滚动与预加载。本文将系统介绍这两种常见场景的最佳实现方式。
+date: 2025-05-26
+tags: ['react-query', '异步状态管理']
+author: liaoyi
+series: react-query
+seriesPart: 4
+---
+
+## 分页请求（Pagination）
+
+分页接口通常接受 page、limit 等参数，并返回如下结构的数据：
+
+```json
+{
+  "cur_page": 1,
+  "total": 500,
+  "data": [...]
+}
+```
+
+最直观的实现是为每一页使用不同的 `queryKey`，例如：
+
+```ts
+useQuery({
+  queryKey: ['books', page],
+  queryFn: () => fetchBooks(page)
+})
+```
+
+似乎平常的 `useQuery` 就可以解决分页的需求，但每次翻页获取新数据都会因为 key 的改变，使` data` 变成空数据，导致页面抖动。
+
+
+### 利用 `placeholderData` 保留上一页数据
+
+`placeholderData` 支持接收上一次的数据作为参数，这使得我们可以在加载新页时显示上一页内容，从而避免空白闪动。
+
+我们可以利用这一点：让加载新数据时不再直接返回空数据，而是保留上一页的数据，配合一个简单的半透明滤镜效果表明正在加载就可以在保证有响应的同时减少页面抖动：
+
+
+```tsx
+const { data, isPlaceholderData } = useQuery({
+  queryKey: ['books', page],
+  queryFn: () => fetchBooks(page),
+  placeholderData: (prev) => prev
+})
+```
+
+结合简单样式处理即可实现 「渐隐加载」 的效果：
+
+```tsx
+<ul style={{ opacity: isPlaceholderData ? 0.5 : 1 }}>
+  {data.data.map((it) => (
+    <li key={it.id}>{it.name}</li>
+  ))}
+</ul>
+```
+
+
+### 禁用切页按钮以避免异常行为
+
+为了防止重复请求或越界请求，通常我们会想在新数据加载时禁用翻页按钮：
+
+```ts
+const { isPlaceholderData } = useBooksQuery(sort, page)
+
+const prevDisabled = page === 1 || isPlaceholderData
+const nextDisabled = page === data.total || isPlaceholderData
+```
+
+
+### 配合 `prefetchQuery` 预加载下一页
+
+我们还可以在进入当前页时，结合上一篇文章介绍的`prefetch`，预先加载下一页数据，加快翻页响应速度：
+
+
+```ts
+const getBooksQueryOptions = (sort: string, page: number) => ({
+  queryKey: ['books', sort, page],
+  queryFn: () => fetchBooks(sort, page),
+  staleTime: 5 * 60 * 1000 // 缓存 5 分钟
+})
+
+const useBooksQuery = (sort: string, page: number) => {
+  const queryClient = useQueryClient()
+
+  // 预加载下一页
+  useEffect(() => {
+    queryClient.prefetchQuery(getBooksQueryOptions(sort, page + 1))
+  }, [sort, page])
+
+  return useQuery(getBooksQueryOptions(sort, page))
+}
+```
+
+
+## 无限滚动（Infinite Scroll）
+
+无限滚动场景常用于用户滑动到底部时自动加载下一页，例如博客、商品列表、评论区等。
+
+React Query 提供了 `useInfiniteQuery` 来支持这种需求。
+
+### 基本用法
+
+```ts
+const { data, hasNextPage, fetchNextPage } = useInfiniteQuery({
+  queryKey: ['books', sort],
+  initialPageParam: 1,
+  queryFn: ({ pageParam = 1 }) => fetchBooks(sort, pageParam),
+  getNextPageParam: (lastPage) => {
+    return lastPage.cur_page < lastPage.total
+      ? lastPage.cur_page + 1
+      : undefined
+  }
+})
+```
+
+渲染分页数据：
+
+```tsx
+<ul>
+  {data.pages.map((page) =>
+    page.data.map((item) => <li key={item.id}>{item.name}</li>)
+  )}
+</ul>
+
+<button onClick={() => fetchNextPage()} disabled={!hasNextPage}>
+  下一页
+</button>
+```
+
+<Callout type='warn' title="注意" >
+上述定义是不准确的，因为还有一种可能是用户向上滚动时，自动加载上一页的数据。所以无限滚动需要支持双向获取数据（比如获取聊天记录）记得为 `prefetchQuery` 提供 `staleTime` 参数，它表示缓存数据的有效时间，能有效避免过于频繁的网络请求。
+</Callout>
+
+
+
+### 支持双向加载
+
+需要同时实现 `getPreviousPageParam`:
+
+```tsx
+useInfiniteQuery({
+  queryKey: ["books", sort],
+  initialPageParam: { page: 1 },
+  queryFn: ({ pageParam = 1 }) => fetchBooks(sort, pageParam),
+   getNextPageParam: (lastPage) => {
+    const nextPage = lastPage.cur_page + 1
+    return nextPage <= lastPage.total ? { page: nextPage } : undefined
+  },
+  getPreviousPageParam: (firstPage) => {
+    const prevPage = firstPage.cur_page - 1
+    return prevPage >= 1 ? { page: prevPage } : undefined
+  }
+})
+```
+
+<Callout type='warn' title="注意" >
+- 此时 `useInfiniteQuery` 返回值的 `data` 不再不是 `queryFn` 返回的数据，而是包含多个分页内容的 `pages` 数组。
+- `pages` 表示目前已获取的所有页的数据的集合。
+- `useInfiniteQuery` 返回的 `refetch` 将会重新请求所有分页数据，而非仅刷新当前页。
+- 这是因为当某一页数据发生变更，可能后续（或前面）的每一页都随着发生变更。
+</Callout>
+
