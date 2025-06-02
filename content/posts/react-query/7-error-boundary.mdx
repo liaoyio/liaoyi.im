@@ -1,0 +1,163 @@
+---
+title: 渲染优化与错误处理
+description: 适用于 React 框架的 TanStack Query 渲染优化与错误处理。
+date: 2025-05-28
+tags: ['react-query', '异步状态管理']
+author: liaoyi
+series: react-query
+seriesPart: 7
+---
+
+# 渲染优化与错误处理
+
+> 本文仅适用于 React 框架，其他框架请参考 [官方文档](https://tanstack.com/query/v5/docs/framework/react/guides/render-optimizations)。
+
+---
+
+## 一、渲染优化
+
+TanStack Query 会自动应用多种优化策略，以确保组件仅在“真正需要”时才重新渲染。
+
+### 1. 结构共享（Structural Sharing）
+
+TanStack Query 通过“结构共享”技术，尽可能保留旧引用，减少 diff 带来的不必要重渲染：
+
+- 网络请求通常返回新 JSON 对象，引用发生变化。
+- 但如果数据内容未变，Query 会保留原始引用。
+- 仅数据部分变动时，Query 会只替换发生变化的那一部分引用。
+
+> ✅ 要求：`queryFn` 必须返回 JSON 兼容对象。
+
+---
+
+### 2. 引用稳定性（Referential Identity）
+
+`useQuery` / `useMutation` 等返回的整体对象每次渲染都会变化（非稳定引用），但：
+
+- 其内部的 `data` 属性尽量保持引用稳定。
+- 避免无意义的深层比较和组件重新渲染。
+
+---
+
+### 3. 跟踪属性（Tracked Properties）
+
+TanStack Query 使用 getter 劫持技术，对返回对象中的属性进行“使用追踪”：
+
+- 仅在组件实际使用某属性并该属性发生变化时才触发更新。
+- 避免 `isFetching`, `isStale` 等频繁变动属性导致组件重渲染。
+
+⚠️ 注意：此优化仅对以下形式生效：
+
+```tsx
+const { isFetching } = useQuery(...); // ✅ 可追踪
+const rest = useQuery(...); const { isFetching } = rest; // ❌ 不可追踪
+```
+
+---
+
+### 4. `select` 精准选择渲染数据
+
+通过 `select` 参数自定义 `data`，可精细控制更新：
+
+```ts
+export const useTodos = (select) =>
+  useQuery({ queryKey: ["todos"], queryFn: fetchTodos, select });
+
+export const useTodoCount = () =>
+  useTodos((data) => data.length);
+```
+
+- 当 `todos.length` 发生变化才重新渲染；
+- `todos` 内部内容变化不会触发更新。
+
+⚠️ 注意事项：
+
+- `select` 函数在“数据变化”或“函数引用变化”时才重新执行；
+- 如果直接内联函数，渲染时每次都会触发执行，应使用 `useCallback` 包裹或外提函数：
+
+```ts
+// 推荐做法 1：useCallback 包裹
+export const useTodoCount = () =>
+  useTodos(useCallback((data) => data.length, []));
+
+// 推荐做法 2：提取为稳定引用
+const selectTodoCount = (data) => data.length;
+export const useTodoCount = () => useTodos(selectTodoCount);
+```
+
+---
+
+## 二、错误处理
+
+### 1. 避免在 `queryFn` 中 try-catch 错误
+
+```ts
+const fetchTodos = async () => {
+  try {
+    return await axios.get("/todos"); // ⚠️ 错误写法
+  } catch (err) {
+    return []; // ❌ React Query 无法感知错误
+  }
+};
+```
+
+> ✅ 正确方式：让错误自然抛出，React Query 会自动接收和处理。
+
+---
+
+### 2. 组件级错误处理
+
+适用于局部展示错误：
+
+```tsx
+const { isError, error } = useQuery(...);
+
+if (isError) {
+  return <div>Error: {error.message}</div>;
+}
+```
+
+---
+
+### 3. 全局错误处理（Error Boundary）
+
+适用于页面级错误回退，需要配合 `throwOnError: true`：
+
+```tsx
+<ErrorBoundary fallback={<ErrorFallback />}>
+  <QueryClientProvider client={queryClient}>
+    <App />
+  </QueryClientProvider>
+</ErrorBoundary>
+```
+
+```ts
+useQuery({
+  queryKey: [...],
+  queryFn,
+  throwOnError: true,
+});
+```
+
+---
+
+## 三、小贴士补充
+
+- 配置 `retry` 选项控制错误重试次数，避免删除类请求自动重试：
+
+```ts
+useQuery({
+  queryKey: ["todos"],
+  queryFn: fetchTodos,
+  retry: false, // 禁止重试
+});
+```
+
+- 全局错误提示可使用 `queryClient.setDefaultOptions({...})` 统一配置。
+
+---
+
+## 📚 参考资料
+
+- [TanStack 官方文档：Render Optimizations](https://tanstack.com/query/v5/docs/framework/react/guides/render-optimizations)
+- [TanStack 官方文档：Error Handling](https://tanstack.com/query/v5/docs/framework/react/guides/errors)
