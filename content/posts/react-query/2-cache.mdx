@@ -1,0 +1,91 @@
+---
+title: 提升用户体验 —— react-query 实现接口请求缓存优化
+description: 本文介绍基于 react-query 优雅地管理请求数据的缓存。
+date: 2025-05-23
+tags: ['react-query', '异步状态管理']
+author: liaoyi
+series: react-query
+seriesPart: 2
+---
+
+在上一篇文章中，我们简单介绍了 useQuery 的基本用法。这一篇，我们来深入探讨如何通过 react-query 实现接口请求的缓存机制，以提升性能、减少冗余请求。
+
+## 为什么需要缓存？
+
+在实际业务开发中，频繁的网络请求不仅会增加服务器负担，还会影响用户体验。而很多场景下的数据其实并不需要实时更新，我们可以合理设置缓存时间来降低请求频率。
+
+常见的例子包括：
+
+- 📈 基金收益明细：通常每天只更新一次；
+- 👨🏻‍💻 用户头像：只有用户手动修改时才会变化；
+- 💬 评论列表：如果对实时性要求不高，半小时更新一次也是可以接受的。
+
+
+## 如何设置缓存的过期时间 ?
+
+手动管理缓存的生命周期是非常复杂且容易出错的事情。react-query 为我们提供了 `staleTime` 这一参数，帮助我们优雅地管理缓存的 「过期策略」。
+`staleTime` 以毫秒为单位，表示数据多久之后会被视 "过期"。在这段时间内，如果再次触发该请求，会直接使用缓存数据，而不会重新发起请求。
+
+
+```ts
+useQuery({
+  queryKey: ['fund', id],
+  queryFn: fetchFundDetail,
+  staleTime: 60 * 1000, // 缓存 60 秒
+})
+```
+
+- `staleTime: 60 * 1000`, 意味着一分钟内，不会再发网络请求，而是直接从缓存里取值返回。
+- 这在一定程度上减少了网络请求，减轻服务器压力同时提升了用户体验。
+- 默认情况下，`staleTime` 为 `0`，意味着数据在获取后立即进入 "过期" 状态，每次都会重新请求。
+
+<Callout type='warn' title="建议">
+缓存时间的设置应该根据业务实际情况与产品、后端、测试同学沟通确定，避免拍脑袋式的判断，否则可能导致缓存失效或数据不同步的问题。
+</Callout>
+
+## 缓存什么时候会自动更新 (Trigger) ?
+
+需要注意的是，即使缓存已经过期，react-query 也不会立即重新请求，只有在满足以下几种情况时才会触发**自动更新**：
+
+1. `queryKey` 发生变化：例如分页列表中页码变化 (如：`['todo', page]`);
+2. 组件重新挂载并订阅了该 query: 例如一个引用了过期缓存的 Modal， Modal 重新渲染时会触发更新缓存；
+3. 浏览器窗口重新获取焦点：用户切换标签页返回后；
+4. 设备网络断开后重新连接
+
+
+## 如何关闭自动更新行为？
+
+react-query 默认启用上述刷新机制，但在某些情况下你可能希望手动控制更新行为。
+
+其中三种情况可以手动关闭:
+
+```ts
+useQuery({
+  queryKey: ['todo', sort],
+  queryFn: () => fetchTodo(sort),
+  staleTime: 30 * 1000, // 缓存30秒
+  refetchOnMount: false,         // 组件挂载时不自动刷新
+  refetchOnWindowFocus: false,   // 聚焦窗口时不刷新
+  refetchOnReconnect: false,     // 网络重连时不刷新
+})
+```
+- 你也可以通过将 `staleTime` 设置为 `Infinity` 来永不过期，除非手动触发刷新。
+
+
+## 示例：展示数据及更新时间，并手动刷新
+
+下面是一个小示例，展示如何使用缓存和更新逻辑：
+
+- 使用 useQuery 获取数据；
+- 设置 `staleTime` 为 30 秒；
+- 显示当前数据和上次更新时间；
+- 5 秒后出现 「刷新数据」 按钮，用户可以手动触发更新；
+- 观察 `isStale`（数据是否过期）与 isFetching（是否正在请求）状态。
+
+import TodoList from './examples/react-query-cache';
+
+ <CodeDisplay component={<TodoList />}>
+  <include lang="tsx" meta={{title: "opacity.tsx"}}>
+   ./examples/react-query-cache.tsx
+  </ include>
+</CodeDisplay>

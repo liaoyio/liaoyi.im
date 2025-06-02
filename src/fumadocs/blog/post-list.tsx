@@ -45,7 +45,7 @@ export default function PostList({
             .filter(
               (post): post is NonNullable<typeof post> => post !== undefined,
             )
-            .map(post => (<PostCard key={post.url} hasSeriesBadge post={post} className="order-last border-x border-b border-t-0 sm:order-first sm:col-span-12 lg:col-span-12 bg-transparent dark:bg-transparent" />))}
+            .map(post => (<PostCard key={post.url} post={post} className="order-last border-x border-b border-t-0 sm:order-first sm:col-span-12 lg:col-span-12 bg-transparent dark:bg-transparent" />))}
         </div>
 
         {!disablePagination && (

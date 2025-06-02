@@ -8,7 +8,7 @@ interface CodeDisplayProps {
 export default function CodeDisplay({ component, children }: CodeDisplayProps) {
   return (
     <div className="flex flex-col gap-6 overflow-hidden">
-      <div className="w-full p-8 flex items-center justify-center  rounded-lg border bg-gray-50 dark:bg-gray-900">
+      <div className="w-full p-8 flex items-center justify-center  rounded-lg border bg-gray-50 dark:bg-fd-card/200">
         {component}
       </div>
       <div className="w-full overflow-hidden">{children}</div>

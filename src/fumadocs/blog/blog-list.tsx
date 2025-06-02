@@ -23,6 +23,7 @@ export function RecentPosts({
     <PostList
       posts={displayPosts}
       currentPage={1}
+
       totalPages={totalPages}
       disablePagination={true}
       heading={heading}
