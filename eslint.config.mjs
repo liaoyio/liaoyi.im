@@ -26,6 +26,7 @@ export default [
   {
     rules: {
       'node/prefer-global/process': 'off',
+      'no-console': 'off',
     },
   },
   { ignores: ['dist/**', '**/.source', 'src/components/ui/*'] },

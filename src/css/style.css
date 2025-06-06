@@ -128,3 +128,8 @@ button:disabled,
     opacity: 1;
   }
 }
+
+.ant-table-tbody .ant-table-cell {
+  padding-top:  0 !important;
+  padding-bottom:  0 !important;
+}
