@@ -22,6 +22,7 @@ export const FumadocsComponents: MDXComponents = {
   img: props => <ImageZoom {...props} />,
   // https://fumadocs.dev/docs/ui/components/auto-type-table
   AutoTypeTable: props => <AutoTypeTable {...props} generator={generator} />,
+  blockquote: props => <blockquote className="not-italic " {...props} />,
   Tabs,
   Tab,
   Steps,

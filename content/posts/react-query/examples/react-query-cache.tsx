@@ -75,7 +75,7 @@ export default function TodoList() {
       <ul>
         {todos?.map(todo => (
           <li key={todo.id}>
-            <input type="checkbox" checked={todo.completed} />
+            <input type="checkbox" defaultChecked={todo.completed} />
             <span className="ml-2">{todo.title}</span>
           </li>
         ))}
